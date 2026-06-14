@@ -3,6 +3,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useGalleryStore } from '@/stores/gallery'
 import type { Photo } from '@/types/gallery'
 import type { FetchPhotosResult } from '@/services/contentful'
+import { setCache } from '@/services/cache'
 
 vi.mock('@/services/contentful', () => ({
   fetchPhotos: vi.fn<() => Promise<FetchPhotosResult>>(),
@@ -40,6 +41,7 @@ describe('galleryStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
+    localStorage.clear()
   })
 
   it('starts with empty photos, not loading, no error', () => {
@@ -105,5 +107,49 @@ describe('galleryStore', () => {
 
     await store.loadMore()
     expect(fetchPhotos).toHaveBeenCalledTimes(1)
+  })
+
+  it('returns cached data from fresh cache without API call', async () => {
+    setCache('gallery-photos', { photos: mockPhotos, total: 1 })
+    const store = useGalleryStore()
+    await store.fetchPhotos()
+    expect(store.photos).toEqual(mockPhotos)
+    expect(vi.mocked(fetchPhotos)).not.toHaveBeenCalled()
+  })
+
+  it('shows stale cache then revalidates in background', async () => {
+    const staleEntry = JSON.stringify({
+      timestamp: Date.now() - 900_001,
+      data: { photos: mockPhotos, total: 10 },
+    })
+    localStorage.setItem('cache:gallery-photos', staleEntry)
+
+    let resolveDeferred!: (value: FetchPhotosResult) => void
+    const deferred = new Promise<FetchPhotosResult>((resolve) => {
+      resolveDeferred = resolve
+    })
+    vi.mocked(fetchPhotos).mockReturnValue(deferred)
+
+    const store = useGalleryStore()
+    store.fetchPhotos()
+    // flush microtasks so stale data is applied and background fetch begins
+    await Promise.resolve()
+
+    expect(store.photos).toEqual(mockPhotos)
+    expect(vi.mocked(fetchPhotos)).toHaveBeenCalledWith(0, 9)
+
+    // let background revalidation complete
+    resolveDeferred!({ photos: mockPage2, total: 2 })
+    await deferred
+  })
+
+  it('loadMore always calls the API and does not cache', async () => {
+    setCache('gallery-photos', { photos: mockPhotos, total: 2 })
+    vi.mocked(fetchPhotos).mockResolvedValue({ photos: mockPage2, total: 2 })
+
+    const store = useGalleryStore()
+    await store.loadMore()
+
+    expect(vi.mocked(fetchPhotos)).toHaveBeenCalledTimes(1)
   })
 })

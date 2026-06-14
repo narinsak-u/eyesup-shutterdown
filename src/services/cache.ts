@@ -39,10 +39,7 @@ export function setCache<T>(key: string, data: T): void {
 export function getFresh<T>(key: string, maxAgeMs: number): T | null {
   const entry = readRaw<T>(key)
   if (entry === null) return null
-  if (Date.now() - entry.timestamp >= maxAgeMs) {
-    localStorage.removeItem(PREFIX + key)
-    return null
-  }
+  if (Date.now() - entry.timestamp >= maxAgeMs) return null
   return entry.data
 }
 
