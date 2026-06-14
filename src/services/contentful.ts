@@ -68,10 +68,12 @@ export async function fetchPhotos(skip = 0, limit = 9): Promise<FetchPhotosResul
       | { fields?: { file?: { url?: string } } }
       | undefined;
     const imageUrl = srcField?.fields?.file?.url ?? "";
+    const thumbSrc = imageUrl ? `https:${imageUrl}?w=600&fit=thumb&fm=webp` : "";
 
     return {
       id: entry.sys.id,
       src: imageUrl ? `https:${imageUrl}` : "",
+      thumbSrc,
       alt: getAltText(fields.alt),
       location: fields.location as string,
       date: formatDate(fields.date as string),

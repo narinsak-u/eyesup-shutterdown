@@ -99,6 +99,20 @@ describe('contentful service', () => {
     expect(result.photos[0]?.type).toBe('square')
   })
 
+  it('builds thumbSrc with Contentful image params', async () => {
+    mockGetEntries.mockResolvedValue({ items: [mockEntry()], total: 1 })
+    const result = await fetchPhotos()
+    expect(result.photos[0]?.thumbSrc).toBe(
+      'https://images.ctfassets.net/abc/photo.jpg?w=600&fit=thumb&fm=webp',
+    )
+  })
+
+  it('produces empty thumbSrc when image URL is missing', async () => {
+    mockGetEntries.mockResolvedValue({ items: [mockEntry({ src: undefined })], total: 1 })
+    const result = await fetchPhotos()
+    expect(result.photos[0]?.thumbSrc).toBe('')
+  })
+
   it('throws when client fails', async () => {
     mockGetEntries.mockRejectedValue(new Error('API error'))
 
