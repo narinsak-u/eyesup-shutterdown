@@ -13,6 +13,7 @@ const { fetchPhotos } = await import('@/services/contentful')
 const mockPhotos: Photo[] = [
   {
     id: '1',
+    thumbSrc: 'https://images.ctfassets.net/abc/image.jpg?w=600&fit=thumb&fm=webp',
     src: 'https://images.ctfassets.net/abc/image.jpg',
     alt: 'Test photo',
     location: 'Test, Location',
@@ -25,6 +26,7 @@ const mockPhotos: Photo[] = [
 const mockPage2: Photo[] = [
   {
     id: '2',
+    thumbSrc: 'https://images.ctfassets.net/abc/image2.jpg?w=600&fit=thumb&fm=webp',
     src: 'https://images.ctfassets.net/abc/image2.jpg',
     alt: 'Another photo',
     location: 'Test, Place',
