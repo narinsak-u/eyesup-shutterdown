@@ -2,6 +2,7 @@
 /** A single photo card with image, location, and date. Emits `click` to open the lightbox. */
 defineProps<{
   src: string;
+  thumbSrc: string;
   alt: string;
   location: string;
   date: string;
@@ -17,7 +18,7 @@ defineEmits<{ click: [] }>();
     @click="$emit('click')"
   >
       <img
-        :src="src"
+        :src="thumbSrc"
         :alt="alt"
         class="w-full h-auto block image-zoom"
         loading="lazy"
