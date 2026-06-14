@@ -60,7 +60,7 @@ describe('contentful service', () => {
     expect(result.total).toBe(1)
     expect(result.photos[0]).toEqual({
       id: 'entry-1',
-      src: 'https://images.ctfassets.net/abc/photo.jpg',
+      src: 'https://images.ctfassets.net/abc/photo.jpg?w=1600&fm=webp',
       thumbSrc: 'https://images.ctfassets.net/abc/photo.jpg?w=600&fit=thumb&fm=webp',
       alt: 'A beautiful photo',
       location: 'Paris, FR',

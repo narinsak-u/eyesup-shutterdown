@@ -15,7 +15,7 @@ const mockPhotos: Photo[] = [
   {
     id: '1',
     thumbSrc: 'https://images.ctfassets.net/abc/image.jpg?w=600&fit=thumb&fm=webp',
-    src: 'https://images.ctfassets.net/abc/image.jpg',
+    src: 'https://images.ctfassets.net/abc/image.jpg?w=1600&fm=webp',
     alt: 'Test photo',
     location: 'Test, Location',
     date: 'Jan 2024',
@@ -28,7 +28,7 @@ const mockPage2: Photo[] = [
   {
     id: '2',
     thumbSrc: 'https://images.ctfassets.net/abc/image2.jpg?w=600&fit=thumb&fm=webp',
-    src: 'https://images.ctfassets.net/abc/image2.jpg',
+    src: 'https://images.ctfassets.net/abc/image2.jpg?w=1600&fm=webp',
     alt: 'Another photo',
     location: 'Test, Place',
     date: 'Feb 2024',

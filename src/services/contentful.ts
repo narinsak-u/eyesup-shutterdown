@@ -69,10 +69,11 @@ export async function fetchPhotos(skip = 0, limit = 9): Promise<FetchPhotosResul
       | undefined;
     const imageUrl = srcField?.fields?.file?.url ?? "";
     const thumbSrc = imageUrl ? `https:${imageUrl}?w=600&fit=thumb&fm=webp` : "";
+    const lightboxSrc = imageUrl ? `https:${imageUrl}?w=1600&fm=webp` : "";
 
     return {
       id: entry.sys.id,
-      src: imageUrl ? `https:${imageUrl}` : "",
+      src: lightboxSrc,
       thumbSrc,
       alt: getAltText(fields.alt),
       location: fields.location as string,
