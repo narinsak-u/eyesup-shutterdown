@@ -284,6 +284,20 @@ describe("Lightbox", () => {
     expect(wrapper.find('[aria-label="Unlike photo"]').exists()).toBe(true);
   });
 
+  it("fills the heart icon when the photo is liked", async () => {
+    const wrapper = await openLightbox();
+    const likeIcon = wrapper.find('[aria-label="Like photo"] .material-symbols-outlined');
+
+    expect(likeIcon.classes()).not.toContain("material-symbols-filled");
+
+    await wrapper.find('[aria-label="Like photo"]').trigger("click");
+    await flushPromises();
+
+    expect(wrapper.find('[aria-label="Unlike photo"] .material-symbols-outlined').classes()).toContain(
+      "material-symbols-filled",
+    );
+  });
+
   it("rolls back a failed optimistic like and exposes an error", async () => {
     vi.mocked(createLike).mockRejectedValue(new Error("Like failed"));
     const wrapper = await openLightbox();

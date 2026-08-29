@@ -477,21 +477,21 @@ onUnmounted(() => {
     >
       <button
         v-if="items.length > 1"
-        class="absolute left-2 top-1/2 z-20 -translate-y-1/2 cursor-pointer rounded-full text-white p-2 transition-opacity duration-200 hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:left-20"
+        class="absolute hidden rounded-full lg:inline lg:left-1 top-1/2 z-20 -translate-y-1/2 cursor-pointer text-white p-2 transition-opacity duration-200 hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary xl:left-25"
         type="button"
         aria-label="Previous image"
         @click="prev"
       >
-        <span class="material-symbols-outlined text-[28px]" aria-hidden="true">chevron_left</span>
+        <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
       </button>
       <button
         v-if="items.length > 1"
-        class="absolute right-2 top-1/2 z-20 -translate-y-1/2 cursor-pointer rounded-full p-2 text-white transition-opacity duration-200 hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:right-20"
+        class="absolute hidden rounded-full lg:inline lg:right-1 top-1/2 z-20 -translate-y-1/2 cursor-pointer p-2 text-white transition-opacity duration-200 hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary xl:right-25"
         type="button"
         aria-label="Next image"
         @click="next"
       >
-        <span class="material-symbols-outlined text-[28px]" aria-hidden="true">chevron_right</span>
+        <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
       </button>
       <div
         class="relative flex min-h-[min(90vh,680px)] max-h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-sm bg-white shadow-2xl md:max-h-[calc(100vh-4rem)] md:min-h-0 md:flex-row"
@@ -527,12 +527,12 @@ onUnmounted(() => {
               <p v-if="loadingInteractions" class="py-6 text-body-sm text-secondary" role="status">
                 Loading interactions…
               </p>
-              <p v-else-if="!identity && interactionError" class="py-6 text-body-sm text-secondary">
+              <p v-else-if="!identity && interactionError" class="py-6 text-sm text-secondary">
                 Comments are unavailable until an anonymous identity can be created.
               </p>
               <p
                 v-else-if="!loadingInteractions && comments.length === 0"
-                class="py-6 text-body-sm text-secondary"
+                class="py-6 text-sm text-secondary"
               >
                 No comments yet.
               </p>
@@ -581,12 +581,16 @@ onUnmounted(() => {
                   :aria-label="summary?.likedByViewer ? 'Unlike photo' : 'Like photo'"
                   @click="toggleLike"
                 >
-                  <span class="material-symbols-outlined" aria-hidden="true">
+                  <span
+                    class="material-symbols-outlined"
+                    :class="{ 'material-symbols-filled': summary?.likedByViewer }"
+                    aria-hidden="true"
+                  >
                     {{ summary?.likedByViewer ? "favorite" : "favorite_border" }}
                   </span>
                   <span>{{ summary?.likeCount ?? 0 }} likes</span>
                 </button>
-                <span class="text-body-sm text-secondary" aria-live="polite"
+                <span class="text-sm text-secondary" aria-live="polite"
                   >{{ commentCount }} comments</span
                 >
               </div>
@@ -596,7 +600,7 @@ onUnmounted(() => {
                 <textarea
                   id="lightbox-comment"
                   v-model="commentDraft"
-                  class="min-h-10 min-w-0 flex-1 resize-none rounded-sm border border-gray-300 px-3 py-2 text-body-sm text-primary outline-none focus:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-gray-100"
+                  class="min-h-10 min-w-0 flex-1 resize-none rounded-sm border border-gray-300 px-3 py-1 text-body-sm text-primary outline-none focus:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:bg-gray-100"
                   name="comment"
                   maxlength="500"
                   rows="1"
@@ -604,7 +608,7 @@ onUnmounted(() => {
                   :disabled="commentDisabled"
                 />
                 <button
-                  class="cursor-pointer rounded-sm bg-primary px-3 py-2 text-label-sm text-white transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
+                  class="cursor-pointer rounded-sm bg-primary px-3 py-1 text-label-sm text-white transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
                   type="submit"
                   :disabled="commentDisabled"
                   :aria-busy="commentPending || commentWriteInFlight"
@@ -612,7 +616,7 @@ onUnmounted(() => {
                   {{ commentPending || commentWriteInFlight ? "Posting…" : "Post" }}
                 </button>
               </form>
-              <p class="mt-1 text-right text-body-sm text-secondary">
+              <p class="mt-1 text-right text-sm text-secondary">
                 {{ commentDraft.length }}/500
               </p>
             </div>
@@ -620,7 +624,7 @@ onUnmounted(() => {
 
           <p
             v-if="interactionError"
-            class="shrink-0 border-t border-red-200 bg-red-50 px-5 py-3 text-body-sm text-red-800"
+            class="shrink-0 border-t border-red-200 bg-red-50 text-sm px-5 py-3 text-red-800"
             role="alert"
             aria-live="assertive"
           >
