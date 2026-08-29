@@ -137,6 +137,7 @@ describe("Lightbox", () => {
     expect(wrapper.text()).toContain("Paris, FR");
     expect(wrapper.text()).toContain("January, 2024");
     expect(wrapper.text()).toContain("calm-otter-13");
+    expect(wrapper.find('[aria-label="Comments"]').findAll("img")).toHaveLength(5);
     expect(wrapper.text()).not.toContain("Visitor");
     expect(wrapper.text()).not.toContain("Share");
     expect(wrapper.text()).not.toContain("Bookmark");

@@ -75,6 +75,16 @@ function commentUsername(comment: InteractionComment): string {
   }
 }
 
+function commentAvatar(comment: InteractionComment): string {
+  if (comment.status === "pending" && identity.value) return identity.value.avatarUrl;
+
+  try {
+    return createAnonymousIdentity(comment.ipHash).avatarUrl;
+  } catch {
+    return "";
+  }
+}
+
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
@@ -541,6 +551,12 @@ onUnmounted(() => {
 
               <ul v-else class="space-y-4">
                 <li v-for="comment in comments" :key="comment.id" class="flex gap-3">
+                  <img
+                    v-if="commentAvatar(comment)"
+                    :src="commentAvatar(comment)"
+                    alt=""
+                    class="h-8 w-8 shrink-0 rounded-full border border-gray-200"
+                  />
                   <div class="min-w-0">
                     <p class="text-label-sm text-secondary">
                       <span class="font-semibold text-primary">{{ commentUsername(comment) }}</span>
@@ -548,7 +564,7 @@ onUnmounted(() => {
                       <span v-if="comment.status === 'pending'">Posting…</span>
                       <time v-else :datetime="comment.createdAt">{{ formatRelativeTime(comment.createdAt) }}</time>
                     </p>
-                    <p class="break-words text-body-md text-primary">{{ comment.text }}</p>
+                    <p class="break-words text-[12px] leading-5 text-primary">{{ comment.text }}</p>
                   </div>
                 </li>
               </ul>
