@@ -477,7 +477,7 @@ onUnmounted(() => {
     >
         <button
           v-if="items.length > 1"
-          class="absolute left-4 top-1/2 z-20 -translate-y-1/2 cursor-pointer rounded-full bg-white/90 p-2 text-primary transition-opacity duration-200 hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:left-8"
+          class="absolute left-2 top-1/2 z-20 -translate-y-1/2 cursor-pointer rounded-full bg-white/90 p-2 text-primary transition-opacity duration-200 hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:left-2"
           type="button"
           aria-label="Previous image"
           @click="prev"
@@ -486,7 +486,7 @@ onUnmounted(() => {
         </button>
         <button
           v-if="items.length > 1"
-          class="absolute right-4 top-1/2 z-20 -translate-y-1/2 cursor-pointer rounded-full bg-white/90 p-2 text-primary transition-opacity duration-200 hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:right-8"
+          class="absolute right-2 top-1/2 z-20 -translate-y-1/2 cursor-pointer rounded-full bg-white/90 p-2 text-primary transition-opacity duration-200 hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:right-2"
           type="button"
           aria-label="Next image"
           @click="next"
@@ -512,11 +512,11 @@ onUnmounted(() => {
         <aside class="flex min-h-0 flex-1 flex-col bg-white md:w-[30%] md:flex-none">
           <div class="flex min-h-0 flex-1 flex-col px-5 py-4">
             <div class="shrink-0 border-b border-gray-200 pb-4 text-sm">
-              <p class="mt-2 text-body-sm text-secondary">
-                <span>{{ currentPhoto?.location }}</span>
-              </p>
               <p class="text-xs text-secondary font-semibold">
                 <time>{{ currentPhoto?.date }}</time>
+              </p>
+              <p class="mt-2 text-body-sm text-secondary">
+                <span>{{ currentPhoto?.location }}</span>
               </p>
             </div>
 
