@@ -65,6 +65,16 @@ const commentDisabled = computed(
 );
 const commentCount = computed(() => comments.value.length);
 
+function commentUsername(comment: InteractionComment): string {
+  if (comment.status === "pending" && identity.value) return identity.value.username;
+
+  try {
+    return createAnonymousIdentity(comment.ipHash).username;
+  } catch {
+    return "Anonymous";
+  }
+}
+
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
@@ -533,7 +543,7 @@ onUnmounted(() => {
                 <li v-for="comment in comments" :key="comment.id" class="flex gap-3">
                   <div class="min-w-0">
                     <p class="text-body-sm text-secondary">
-                      <span class="font-semibold text-primary">{{ comment.status === "pending" ? "You" : "Visitor" }}</span>
+                      <span class="font-semibold text-primary">{{ commentUsername(comment) }}</span>
                       <span aria-hidden="true"> · </span>
                       <span v-if="comment.status === 'pending'">Posting…</span>
                       <time v-else :datetime="comment.createdAt">{{ formatRelativeTime(comment.createdAt) }}</time>
