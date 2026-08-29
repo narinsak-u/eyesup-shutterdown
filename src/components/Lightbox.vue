@@ -542,7 +542,7 @@ onUnmounted(() => {
               <ul v-else class="space-y-4">
                 <li v-for="comment in comments" :key="comment.id" class="flex gap-3">
                   <div class="min-w-0">
-                    <p class="text-body-sm text-secondary">
+                    <p class="text-label-sm text-secondary">
                       <span class="font-semibold text-primary">{{ commentUsername(comment) }}</span>
                       <span aria-hidden="true"> · </span>
                       <span v-if="comment.status === 'pending'">Posting…</span>
