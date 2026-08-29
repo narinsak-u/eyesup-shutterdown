@@ -202,6 +202,20 @@ describe("Lightbox", () => {
     expect(prevWrapper.emitted("update:index")?.[0]?.[0]).toBe(0);
   });
 
+  it("places navigation controls outside the card", () => {
+    const wrapper = mount(Lightbox, {
+      props: { items, modelValue: true, index: 0 },
+    });
+    const dialog = wrapper.find('[role="dialog"]');
+
+    expect(dialog.find(':scope > button[aria-label="Previous image"]').exists()).toBe(true);
+    expect(dialog.find(':scope > button[aria-label="Next image"]').exists()).toBe(true);
+    expect(dialog.find(':scope > div > button[aria-label="Previous image"]').exists()).toBe(false);
+    expect(dialog.find(':scope > div > button[aria-label="Next image"]').exists()).toBe(false);
+    expect(dialog.find('[aria-label="Previous image"]').classes()).toContain("rounded-full");
+    expect(dialog.find('[aria-label="Next image"]').classes()).toContain("rounded-full");
+  });
+
   it("wraps navigation and hides controls for a single item", async () => {
     const nextWrapper = mount(Lightbox, {
       props: { items, modelValue: true, index: 2 },
