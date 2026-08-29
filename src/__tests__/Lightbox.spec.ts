@@ -381,6 +381,45 @@ describe("Lightbox", () => {
     expect(wrapper.find('[role="alert"]').exists()).toBe(false);
   });
 
+  it("does not start duplicate like or comment writes after close/reopen until originals settle", async () => {
+    const likeRequest = deferred<string>();
+    const commentRequest = deferred<InteractionComment>();
+    vi.mocked(createLike)
+      .mockReturnValueOnce(likeRequest.promise)
+      .mockResolvedValue("fresh-like");
+    vi.mocked(createComment)
+      .mockReturnValueOnce(commentRequest.promise)
+      .mockResolvedValue(comment("fresh-comment", "Current comment"));
+    const wrapper = await openLightbox();
+
+    await wrapper.find('[aria-label="Like photo"]').trigger("click");
+    await wrapper.find("textarea").setValue("Original comment");
+    await wrapper.find("form").trigger("submit");
+    expect(vi.mocked(createLike)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(createComment)).toHaveBeenCalledTimes(1);
+
+    await wrapper.setProps({ modelValue: false });
+    await wrapper.setProps({ modelValue: true });
+    await flushPromises();
+
+    await wrapper.find('[aria-label="Like photo"]').trigger("click");
+    await wrapper.find("textarea").setValue("Duplicate comment");
+    await wrapper.find("form").trigger("submit");
+    expect(vi.mocked(createLike)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(createComment)).toHaveBeenCalledTimes(1);
+
+    likeRequest.resolve("stale-like");
+    commentRequest.reject(new Error("stale comment failure"));
+    await flushPromises();
+
+    await wrapper.find('[aria-label="Like photo"]').trigger("click");
+    await wrapper.find("textarea").setValue("After settle");
+    await wrapper.find("form").trigger("submit");
+    await flushPromises();
+    expect(vi.mocked(createLike)).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(createComment)).toHaveBeenCalledTimes(2);
+  });
+
   it("does not let a stale like completion replace a fresh like entry", async () => {
     const likeRequest = deferred<string>();
     vi.mocked(createLike).mockReturnValue(likeRequest.promise);

@@ -42,6 +42,8 @@ const interactionError = shallowRef<string | null>(null);
 let interactionRequestId = 0;
 let likeRequestId = 0;
 let commentRequestId = 0;
+let likeWriteInFlight = false;
+let commentWriteInFlight = false;
 let loadedCommentCount = 0;
 let likeEntryId: string | null = null;
 let identityPromise: Promise<AnonymousIdentity> | null = null;
@@ -178,7 +180,7 @@ async function toggleLike(): Promise<void> {
   const photo = currentPhoto.value;
   const viewer = identity.value;
   const currentSummary = summary.value;
-  if (!photo || !viewer || !currentSummary || likePending.value) return;
+  if (!photo || !viewer || !currentSummary || likeWriteInFlight) return;
 
   const photoId = photo.id;
   const requestId = ++likeRequestId;
@@ -186,6 +188,7 @@ async function toggleLike(): Promise<void> {
   const previousLikeCount = currentSummary.likeCount;
   const previousLikeEntryId = likeEntryId;
   const nextLiked = !wasLiked;
+  likeWriteInFlight = true;
   summary.value = {
     ...currentSummary,
     likeCount: Math.max(0, previousLikeCount + (nextLiked ? 1 : -1)),
@@ -217,14 +220,14 @@ async function toggleLike(): Promise<void> {
       interactionError.value = errorMessage(error, "Could not update your like.");
     }
   } finally {
+    likeWriteInFlight = false;
     if (requestId === likeRequestId && isCurrentPhoto(photoId)) likePending.value = false;
   }
 }
-
 async function submitComment(): Promise<void> {
   const photo = currentPhoto.value;
   const viewer = identity.value;
-  if (!photo || !viewer || commentPending.value) return;
+  if (!photo || !viewer || commentWriteInFlight) return;
 
   const draft = commentDraft.value;
   const text = draft.trim();
@@ -249,6 +252,7 @@ async function submitComment(): Promise<void> {
     status: "pending",
   };
 
+  commentWriteInFlight = true;
   comments.value = [provisionalComment, ...comments.value];
   commentDraft.value = "";
   interactionError.value = null;
@@ -269,9 +273,11 @@ async function submitComment(): Promise<void> {
       if (summary.value) summary.value = { ...summary.value, comments: comments.value };
     }
   } finally {
+    commentWriteInFlight = false;
     if (requestId === commentRequestId && isCurrentPhoto(photoId)) commentPending.value = false;
   }
 }
+
 /** Advances to the next image, wrapping around at the end of the collection. */
 function next() {
   if (props.items.length === 0) return;
