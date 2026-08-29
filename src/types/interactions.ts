@@ -12,6 +12,8 @@ export interface InteractionComment {
 export interface InteractionSummary {
   likeCount: number
   likedByViewer: boolean
+  /** Contentful entry ID used to remove the viewer's like. */
+  viewerLikeId?: string
   comments: InteractionComment[]
   hasMoreComments: boolean
 }

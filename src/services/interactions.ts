@@ -86,6 +86,7 @@ async function requestManagement(
   headers.set('Authorization', `Bearer ${config.accessToken}`)
   headers.set('Content-Type', 'application/vnd.contentful.management.v1+json')
   const response = await fetch(managementEntryUrl(config, entryId), {
+    method: options.method ?? 'GET',
     ...options,
     headers,
   })
@@ -178,9 +179,11 @@ export async function fetchInteractionSummary(
   ])
 
   const commentItems = responseItems(comments)
+  const viewerLikeId = asEntry(responseItems(viewerLikes)[0]).sys?.id
   return {
     likeCount: responseTotal(likes),
     likedByViewer: responseTotal(viewerLikes) > 0,
+    ...(typeof viewerLikeId === 'string' && viewerLikeId ? { viewerLikeId } : {}),
     comments: commentItems.map((comment) => normalizeComment(comment)),
     hasMoreComments: pagination.skip + commentItems.length < responseTotal(comments),
   }

@@ -50,6 +50,7 @@ describe('interactions service', () => {
     await expect(fetchInteractionSummary('photo-1', IP_HASH)).resolves.toEqual({
       likeCount: 3,
       likedByViewer: true,
+      viewerLikeId: 'like-1',
       comments: [{
         id: 'comment-1',
         photoId: 'photo-1',
