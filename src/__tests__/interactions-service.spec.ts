@@ -96,8 +96,90 @@ describe('interactions service', () => {
     expect(commentsQuery.get('limit')).toBe('5')
   })
 
+  it('creates and publishes a like through the interaction-space Management API', async () => {
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse({ sys: { id: 'like-1', version: 1 } }, 201))
+      .mockResolvedValueOnce(jsonResponse({ sys: { id: 'like-1', version: 2, publishedVersion: 1 } }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(createLike('photo-1', IP_HASH)).resolves.toBe('like-1')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    const [createUrl, createOptions] = fetchMock.mock.calls[0] ?? []
+    expect(String(createUrl)).toContain('/spaces/interaction-space/environments/master/entries')
+    expect(createOptions?.method).toBe('POST')
+    expect(new Headers(createOptions?.headers).get('Authorization')).toBe('Bearer interaction-token')
+    expect(new Headers(createOptions?.headers).get('X-Contentful-Content-Type')).toBe('photoLike')
+    expect(JSON.parse(String(createOptions?.body)).fields.photoId['en-US']).toBe('photo-1')
+    expect(JSON.parse(String(createOptions?.body)).fields.ipHash['en-US']).toBe(IP_HASH)
+
+    const [publishUrl, publishOptions] = fetchMock.mock.calls[1] ?? []
+    expect(String(publishUrl)).toContain('/entries/like-1/published')
+    expect(publishOptions?.method).toBe('PUT')
+    expect(new Headers(publishOptions?.headers).get('X-Contentful-Version')).toBe('1')
+  })
+  
+  it('creates and publishes a trimmed visible comment before mapping the response', async () => {
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse({
+        sys: { id: 'comment-1', version: 1 },
+        fields: {
+          photoId: { 'en-US': 'photo-1' },
+          ipHash: { 'en-US': IP_HASH },
+          text: { 'en-US': 'hello' },
+          createdAt: { 'en-US': '2026-08-29T12:00:00.000Z' },
+          status: { 'en-US': 'visible' },
+        },
+      }, 201))
+      .mockResolvedValueOnce(jsonResponse({
+        sys: { id: 'comment-1', version: 2, publishedVersion: 1 },
+        fields: {
+          photoId: { 'en-US': 'photo-1' },
+          ipHash: { 'en-US': IP_HASH },
+          text: { 'en-US': 'hello' },
+          createdAt: { 'en-US': '2026-08-29T12:00:00.000Z' },
+          status: { 'en-US': 'visible' },
+        },
+      }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(createComment('photo-1', IP_HASH, '  hello  ')).resolves.toEqual({
+      id: 'comment-1',
+      photoId: 'photo-1',
+      ipHash: IP_HASH,
+      text: 'hello',
+      createdAt: '2026-08-29T12:00:00.000Z',
+      status: 'visible',
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe('POST')
+    expect(new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get('X-Contentful-Content-Type')).toBe('photoComment')
+    expect(String(fetchMock.mock.calls[1]?.[0])).toContain('/entries/comment-1/published')
+    expect(fetchMock.mock.calls[1]?.[1]?.method).toBe('PUT')
+    expect(new Headers(fetchMock.mock.calls[1]?.[1]?.headers).get('X-Contentful-Version')).toBe('1')
+  })
+
+  it('unpublishes a published like before deleting it with the current version', async () => {
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse({ sys: { id: 'like-1', version: 7, publishedVersion: 6 } }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(jsonResponse({ sys: { id: 'like-1', version: 8 } }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(deleteLike('like-1')).resolves.toBeUndefined()
+    expect(fetchMock).toHaveBeenCalledTimes(4)
+    expect(String(fetchMock.mock.calls[1]?.[0])).toContain('/entries/like-1/published')
+    expect(fetchMock.mock.calls[1]?.[1]?.method).toBe('DELETE')
+    expect(new Headers(fetchMock.mock.calls[1]?.[1]?.headers).get('X-Contentful-Version')).toBe('7')
+    expect(fetchMock.mock.calls[2]?.[1]?.method).toBe('GET')
+    expect(fetchMock.mock.calls[3]?.[1]?.method).toBe('DELETE')
+    expect(new Headers(fetchMock.mock.calls[3]?.[1]?.headers).get('X-Contentful-Version')).toBe('8')
+  })
+
   it('creates a like through the interaction-space Management API', async () => {
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ sys: { id: 'like-1' } }, 201))
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse({ sys: { id: 'like-1', version: 1 } }, 201))
+      .mockResolvedValueOnce(jsonResponse({ sys: { id: 'like-1', version: 2 } }))
     vi.stubGlobal('fetch', fetchMock)
 
     await expect(createLike('photo-1', IP_HASH)).resolves.toBe('like-1')
@@ -110,31 +192,7 @@ describe('interactions service', () => {
     expect(JSON.parse(String(options?.body)).fields.ipHash['en-US']).toBe(IP_HASH)
   })
 
-  it('creates a trimmed visible comment and maps the Management API response', async () => {
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({
-      sys: { id: 'comment-1' },
-      fields: {
-        photoId: { 'en-US': 'photo-1' },
-        ipHash: { 'en-US': IP_HASH },
-        text: { 'en-US': 'hello' },
-        createdAt: { 'en-US': '2026-08-29T12:00:00.000Z' },
-        status: { 'en-US': 'visible' },
-      },
-    }, 201))
-    vi.stubGlobal('fetch', fetchMock)
 
-    await expect(createComment('photo-1', IP_HASH, '  hello  ')).resolves.toEqual({
-      id: 'comment-1',
-      photoId: 'photo-1',
-      ipHash: IP_HASH,
-      text: 'hello',
-      createdAt: '2026-08-29T12:00:00.000Z',
-      status: 'visible',
-    })
-    const [, options] = fetchMock.mock.calls[0] ?? []
-    expect(options?.method).toBe('POST')
-    expect(new Headers(options?.headers).get('X-Contentful-Content-Type')).toBe('photoComment')
-  })
 
   it('uses the entry version returned by Management API before deleting a like', async () => {
     const fetchMock = vi.fn<typeof fetch>()

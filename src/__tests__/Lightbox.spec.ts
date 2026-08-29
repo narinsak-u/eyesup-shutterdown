@@ -140,6 +140,16 @@ describe("Lightbox", () => {
     expect(wrapper.text()).not.toContain("Bookmark");
   });
 
+  it("bounds the mobile interaction card to the viewport while retaining desktop sizing", () => {
+    const wrapper = mount(Lightbox, {
+      props: { items: single, modelValue: true, index: 0 },
+    });
+
+    const card = wrapper.find('[role="dialog"] > div');
+    expect(card.classes()).toContain("max-h-[calc(100dvh-1rem)]");
+    expect(card.classes()).toContain("md:max-h-[calc(100vh-4rem)]");
+  });
+
   it("loads a fresh summary and photo metadata after navigation", async () => {
     const wrapper = await openLightbox({ items, index: 0 });
     await wrapper.find('[aria-label="Next image"]').trigger("click");
@@ -372,13 +382,36 @@ describe("Lightbox", () => {
     await wrapper.setProps({ modelValue: false });
     await wrapper.setProps({ modelValue: true });
     await flushPromises();
-    await wrapper.find("textarea").setValue("Current draft");
+    expect(wrapper.find("textarea").attributes("disabled")).toBeDefined();
 
     commentRequest.reject(new Error("Stale comment failure"));
     await flushPromises();
 
-    expect(wrapper.find("textarea").element.value).toBe("Current draft");
+    expect(wrapper.find("textarea").element.value).toBe("");
     expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+
+  });
+
+  it("keeps controls disabled while stale writes remain in flight after navigation", async () => {
+    const likeRequest = deferred<string>();
+    const commentRequest = deferred<InteractionComment>();
+    vi.mocked(createLike).mockReturnValue(likeRequest.promise);
+    vi.mocked(createComment).mockReturnValue(commentRequest.promise);
+    const wrapper = await openLightbox({ items, index: 0 });
+
+    await wrapper.find('[aria-label="Like photo"]').trigger("click");
+    await wrapper.find("textarea").setValue("Stale comment");
+    await wrapper.find("form").trigger("submit");
+    await wrapper.find('[aria-label="Next image"]').trigger("click");
+    await flushPromises();
+
+    expect(wrapper.find('[aria-label="Like photo"]').attributes("disabled")).toBeDefined();
+    expect(wrapper.find("textarea").attributes("disabled")).toBeDefined();
+    expect(wrapper.find('button[type="submit"]').attributes("disabled")).toBeDefined();
+
+    likeRequest.resolve("stale-like");
+    commentRequest.resolve(comment("stale-comment", "Stale comment"));
+    await flushPromises();
   });
 
   it("does not start duplicate like or comment writes after close/reopen until originals settle", async () => {

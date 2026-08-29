@@ -54,9 +54,9 @@ function deliveryEntriesUrl(config: InteractionConfig, query: Record<string, str
   return url.toString()
 }
 
-function managementEntryUrl(config: InteractionConfig, entryId?: string): string {
-  const suffix = entryId ? `/${encodeURIComponent(entryId)}` : ''
-  return `${MANAGEMENT_API}/spaces/${encodeURIComponent(config.space)}/environments/${encodeURIComponent(config.environment)}/entries${suffix}`
+function managementEntryUrl(config: InteractionConfig, entryId?: string, suffix = ''): string {
+  const entrySuffix = entryId ? `/${encodeURIComponent(entryId)}` : ''
+  return `${MANAGEMENT_API}/spaces/${encodeURIComponent(config.space)}/environments/${encodeURIComponent(config.environment)}/entries${entrySuffix}${suffix}`
 }
 
 async function readJson(response: Response): Promise<unknown> {
@@ -81,11 +81,12 @@ async function requestManagement(
   config: InteractionConfig,
   entryId: string | undefined,
   options: RequestInit = {},
+  suffix = '',
 ): Promise<unknown> {
   const headers = new Headers(options.headers)
   headers.set('Authorization', `Bearer ${config.accessToken}`)
   headers.set('Content-Type', 'application/vnd.contentful.management.v1+json')
-  const response = await fetch(managementEntryUrl(config, entryId), {
+  const response = await fetch(managementEntryUrl(config, entryId, suffix), {
     method: options.method ?? 'GET',
     ...options,
     headers,
@@ -195,31 +196,66 @@ function managementFields(fields: Record<string, string>): Record<string, Record
   )
 }
 
-/** Creates a like in the isolated interaction space and returns its Contentful entry ID. */
+function contentfulVersion(entry: ContentfulEntry): string | null {
+  const version = entry.sys?.version
+  return typeof version === 'number' || typeof version === 'string' ? String(version) : null
+}
+
+
+function hasPublishedVersion(entry: ContentfulEntry): boolean {
+  const publishedVersion = entry.sys?.publishedVersion
+  return typeof publishedVersion === 'number' || typeof publishedVersion === 'string'
+}
+
+async function createAndPublish(
+  config: InteractionConfig,
+  contentType: 'photoLike' | 'photoComment',
+  fields: Record<string, string>,
+): Promise<{ id: string; entry: ContentfulEntry }> {
+  const payload = await requestManagement(config, undefined, {
+    method: 'POST',
+    headers: {
+      'X-Contentful-Content-Type': contentType,
+    },
+    body: JSON.stringify({ fields: managementFields(fields) }),
+  })
+  const createdEntry = asEntry(payload)
+  const id = createdEntry.sys?.id
+  if (typeof id !== 'string' || !id) {
+    throw new Error(`Contentful did not return the new ${contentType === 'photoLike' ? 'like' : 'comment'} ID.`)
+  }
+  const version = contentfulVersion(createdEntry)
+  if (!version) throw new Error('Contentful did not return a version for the new interaction.')
+
+  const publishedPayload = await requestManagement(config, id, {
+    method: 'PUT',
+    headers: {
+      'X-Contentful-Version': version,
+    },
+  }, '/published')
+  const publishedEntry = asEntry(publishedPayload)
+  const publishedId = publishedEntry.sys?.id
+  return {
+    id,
+    entry: typeof publishedId === 'string' && publishedId ? publishedEntry : createdEntry,
+  }
+}
+
+/** Creates a like in the isolated interaction space and returns its published entry ID. */
 export async function createLike(photoId: string, ipHash: string): Promise<string> {
   const normalizedPhotoId = requireIdentifier(photoId, 'photoId')
   const normalizedIpHash = requireIdentifier(ipHash, 'ipHash')
   const config = getInteractionConfig()
   requireConfig(config)
-  const payload = await requestManagement(config, undefined, {
-    method: 'POST',
-    headers: {
-      'X-Contentful-Content-Type': 'photoLike',
-    },
-    body: JSON.stringify({
-      fields: managementFields({
-        photoId: normalizedPhotoId,
-        ipHash: normalizedIpHash,
-        createdAt: new Date().toISOString(),
-      }),
-    }),
+  const { id } = await createAndPublish(config, 'photoLike', {
+    photoId: normalizedPhotoId,
+    ipHash: normalizedIpHash,
+    createdAt: new Date().toISOString(),
   })
-  const id = asEntry(payload).sys?.id
-  if (typeof id !== 'string' || !id) throw new Error('Contentful did not return the new like ID.')
   return id
 }
 
-/** Creates a visible, immutable comment in the isolated interaction space. */
+/** Creates and publishes a visible, immutable comment in the isolated interaction space. */
 export async function createComment(
   photoId: string,
   ipHash: string,
@@ -236,23 +272,15 @@ export async function createComment(
   const createdAt = new Date().toISOString()
   const config = getInteractionConfig()
   requireConfig(config)
-  const payload = await requestManagement(config, undefined, {
-    method: 'POST',
-    headers: {
-      'X-Contentful-Content-Type': 'photoComment',
-    },
-    body: JSON.stringify({
-      fields: managementFields({
-        photoId: normalizedPhotoId,
-        ipHash: normalizedIpHash,
-        text: normalizedText,
-        createdAt,
-        status: 'visible',
-      }),
-    }),
+  const { entry } = await createAndPublish(config, 'photoComment', {
+    photoId: normalizedPhotoId,
+    ipHash: normalizedIpHash,
+    text: normalizedText,
+    createdAt,
+    status: 'visible',
   })
 
-  return normalizeComment(payload, {
+  return normalizeComment(entry, {
     photoId: normalizedPhotoId,
     ipHash: normalizedIpHash,
     text: normalizedText,
@@ -261,20 +289,41 @@ export async function createComment(
   })
 }
 
-/** Deletes a like after reading its current Contentful version for the required header. */
+/** Deletes a like, unpublishing it first when Contentful has a published version. */
 export async function deleteLike(entryId: string): Promise<void> {
   const normalizedEntryId = requireIdentifier(entryId, 'entryId')
   const config = getInteractionConfig()
   requireConfig(config)
   const entry = asEntry(await requestManagement(config, normalizedEntryId))
-  const version = entry.sys?.version ?? entry.sys?.publishedVersion
-  if (typeof version !== 'number' && typeof version !== 'string') {
-    throw new Error('Contentful did not return a version for the like.')
+  let version = contentfulVersion(entry)
+  if (!version) {
+    const publishedVersion = entry.sys?.publishedVersion
+    version =
+      typeof publishedVersion === 'number' || typeof publishedVersion === 'string'
+        ? String(publishedVersion)
+        : null
   }
+  if (!version) throw new Error('Contentful did not return a version for the like.')
+
+  if (hasPublishedVersion(entry)) {
+    const unpublishedPayload = await requestManagement(config, normalizedEntryId, {
+      method: 'DELETE',
+      headers: {
+        'X-Contentful-Version': version,
+      },
+    }, '/published')
+    version = contentfulVersion(asEntry(unpublishedPayload)) ?? ''
+    if (!version) {
+      const currentEntry = asEntry(await requestManagement(config, normalizedEntryId))
+      version = contentfulVersion(currentEntry) ?? ''
+    }
+    if (!version) throw new Error('Contentful did not return a version after unpublishing the like.')
+  }
+
   await requestManagement(config, normalizedEntryId, {
     method: 'DELETE',
     headers: {
-      'X-Contentful-Version': String(version),
+      'X-Contentful-Version': version,
     },
   })
 }

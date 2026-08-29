@@ -23,7 +23,7 @@ describe('anonymous identity utilities', () => {
 
     expect(createAnonymousIdentity(ipHash)).toEqual(createAnonymousIdentity(ipHash))
     expect(createAnonymousIdentity(ipHash).username).toMatch(/^[a-z]+-[a-z]+-[0-9]+$/)
-    expect(createAnonymousIdentity(ipHash).avatarUrl).toContain('mascot-')
+    expect(createAnonymousIdentity(ipHash).avatarUrl).toMatch(/^data:image\/svg\+xml/)
   })
 
   it('selects different deterministic values for a different seed when available', () => {

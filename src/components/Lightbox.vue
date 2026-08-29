@@ -42,8 +42,8 @@ const interactionError = shallowRef<string | null>(null);
 let interactionRequestId = 0;
 let likeRequestId = 0;
 let commentRequestId = 0;
-let likeWriteInFlight = false;
-let commentWriteInFlight = false;
+const likeWriteInFlight = shallowRef(false);
+const commentWriteInFlight = shallowRef(false);
 let loadedCommentCount = 0;
 let likeEntryId: string | null = null;
 let identityPromise: Promise<AnonymousIdentity> | null = null;
@@ -54,6 +54,13 @@ let openerElement: HTMLElement | null = null;
 const dialogRef = useTemplateRef<HTMLDivElement>("dialog");
 
 const hasMoreComments = computed(() => summary.value?.hasMoreComments ?? false);
+
+const likeDisabled = computed(
+  () => loadingInteractions.value || likePending.value || likeWriteInFlight.value || !identity.value || !summary.value,
+);
+const commentDisabled = computed(
+  () => loadingInteractions.value || commentPending.value || commentWriteInFlight.value || !identity.value || !summary.value,
+);
 const commentCount = computed(() => comments.value.length);
 
 function errorMessage(error: unknown, fallback: string): string {
@@ -180,7 +187,7 @@ async function toggleLike(): Promise<void> {
   const photo = currentPhoto.value;
   const viewer = identity.value;
   const currentSummary = summary.value;
-  if (!photo || !viewer || !currentSummary || likeWriteInFlight) return;
+  if (!photo || !viewer || !currentSummary || likeWriteInFlight.value) return;
 
   const photoId = photo.id;
   const requestId = ++likeRequestId;
@@ -188,7 +195,7 @@ async function toggleLike(): Promise<void> {
   const previousLikeCount = currentSummary.likeCount;
   const previousLikeEntryId = likeEntryId;
   const nextLiked = !wasLiked;
-  likeWriteInFlight = true;
+  likeWriteInFlight.value = true;
   summary.value = {
     ...currentSummary,
     likeCount: Math.max(0, previousLikeCount + (nextLiked ? 1 : -1)),
@@ -220,14 +227,14 @@ async function toggleLike(): Promise<void> {
       interactionError.value = errorMessage(error, "Could not update your like.");
     }
   } finally {
-    likeWriteInFlight = false;
+    likeWriteInFlight.value = false;
     if (requestId === likeRequestId && isCurrentPhoto(photoId)) likePending.value = false;
   }
 }
 async function submitComment(): Promise<void> {
   const photo = currentPhoto.value;
   const viewer = identity.value;
-  if (!photo || !viewer || commentWriteInFlight) return;
+  if (!photo || !viewer || commentWriteInFlight.value) return;
 
   const draft = commentDraft.value;
   const text = draft.trim();
@@ -252,7 +259,7 @@ async function submitComment(): Promise<void> {
     status: "pending",
   };
 
-  commentWriteInFlight = true;
+  commentWriteInFlight.value = true;
   comments.value = [provisionalComment, ...comments.value];
   commentDraft.value = "";
   interactionError.value = null;
@@ -273,7 +280,7 @@ async function submitComment(): Promise<void> {
       if (summary.value) summary.value = { ...summary.value, comments: comments.value };
     }
   } finally {
-    commentWriteInFlight = false;
+    commentWriteInFlight.value = false;
     if (requestId === commentRequestId && isCurrentPhoto(photoId)) commentPending.value = false;
   }
 }
@@ -433,14 +440,13 @@ onUnmounted(() => {
       v-if="isOpen"
       ref="dialog"
       tabindex="-1"
-      class="fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/70 p-2 md:p-8"
       role="dialog"
       aria-modal="true"
       aria-labelledby="lightbox-title"
       :data-photo-id="currentPhoto?.id"
     >
       <div
-        class="relative flex min-h-[min(90vh,680px)] w-full max-w-6xl flex-col overflow-hidden rounded-sm bg-white shadow-2xl md:max-h-[calc(100vh-4rem)] md:min-h-0 md:flex-row"
+        class="relative flex min-h-[min(90vh,680px)] max-h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-sm bg-white shadow-2xl md:max-h-[calc(100vh-4rem)] md:min-h-0 md:flex-row"
       >
         <button
           class="absolute right-3 top-3 z-20 cursor-pointer rounded-full bg-white/90 p-2 text-primary transition-opacity duration-200 hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:right-5 md:top-5"
@@ -550,9 +556,9 @@ onUnmounted(() => {
                 <button
                   class="inline-flex cursor-pointer items-center gap-2 rounded-sm text-label-sm text-primary transition-opacity hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-wait disabled:opacity-50"
                   type="button"
-                  :disabled="loadingInteractions || likePending || !identity || !summary"
+                  :disabled="likeDisabled"
                   :aria-pressed="summary?.likedByViewer ?? false"
-                  :aria-busy="likePending"
+                  :aria-busy="likePending || likeWriteInFlight"
                   :aria-label="summary?.likedByViewer ? 'Unlike photo' : 'Like photo'"
                   @click="toggleLike"
                 >
@@ -574,15 +580,15 @@ onUnmounted(() => {
                   maxlength="500"
                   rows="1"
                   placeholder="Add a comment…"
-                  :disabled="loadingInteractions || commentPending || !identity || !summary"
+                  :disabled="commentDisabled"
                 />
                 <button
                   class="cursor-pointer rounded-sm bg-primary px-3 py-2 text-label-sm text-white transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
                   type="submit"
-                  :disabled="loadingInteractions || commentPending || !identity || !summary"
-                  :aria-busy="commentPending"
+                  :disabled="commentDisabled"
+                  :aria-busy="commentPending || commentWriteInFlight"
                 >
-                  {{ commentPending ? "Posting…" : "Post" }}
+                  {{ commentPending || commentWriteInFlight ? "Posting…" : "Post" }}
                 </button>
               </form>
               <p class="mt-1 text-right text-body-sm text-secondary">{{ commentDraft.length }}/500</p>
