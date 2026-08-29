@@ -21,8 +21,8 @@ interface ContentfulEntry {
 
 function getInteractionConfig(): InteractionConfig {
   return {
-    space: import.meta.env.VITE_INTERACTION_SPACE as string,
-    environment: import.meta.env.VITE_INTERACTION_ENVIRONMENT as string,
+    space: import.meta.env.VITE_INTERACTION_SPACE || import.meta.env.VITE_CONTENTFUL_SPACE,
+    environment: import.meta.env.VITE_INTERACTION_ENVIRONMENT || 'master',
     accessToken: import.meta.env.VITE_INTERACTION_ACCESS_TOKEN as string,
     ipDiscoveryUrl: import.meta.env.VITE_IP_DISCOVERY_URL as string,
   }

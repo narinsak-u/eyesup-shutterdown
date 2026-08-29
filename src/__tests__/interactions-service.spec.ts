@@ -78,6 +78,24 @@ describe('interactions service', () => {
     expect(commentsQuery.get('skip')).toBe('0')
   })
 
+  it('falls back to the gallery space and master environment', async () => {
+    vi.stubEnv('VITE_INTERACTION_SPACE', '')
+    vi.stubEnv('VITE_INTERACTION_ENVIRONMENT', '')
+    vi.stubEnv('VITE_CONTENTFUL_SPACE', 'gallery-space')
+
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse({ items: [], total: 0 }))
+      .mockResolvedValueOnce(jsonResponse({ items: [], total: 0 }))
+      .mockResolvedValueOnce(jsonResponse({ items: [], total: 0 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await fetchInteractionSummary('photo-1', IP_HASH)
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain(
+      '/spaces/gallery-space/environments/master/entries',
+    )
+  })
+
   it('uses skip and limit for older comments', async () => {
     const fetchMock = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(jsonResponse({ items: [], total: 0 }))
