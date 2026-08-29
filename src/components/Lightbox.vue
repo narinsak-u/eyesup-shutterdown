@@ -444,6 +444,7 @@ onUnmounted(() => {
       aria-modal="true"
       aria-labelledby="lightbox-title"
       :data-photo-id="currentPhoto?.id"
+      class="fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/70 p-2 md:p-8"
     >
       <div
         class="relative flex min-h-[min(90vh,680px)] max-h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-sm bg-white shadow-2xl md:max-h-[calc(100vh-4rem)] md:min-h-0 md:flex-row"
