@@ -165,3 +165,17 @@ Components use `<script setup lang="ts">` with three sections in order:
 - All env vars prefixed with `VITE_` (Vite convention)
 - Required: `VITE_CONTENTFUL_SPACE`, `VITE_CONTENTFUL_ACCESS_TOKEN`
 - Reference via `import.meta.env.VITE_*`
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs for this repo live in GitHub Issues; use the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the default canonical triage labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This is a single-context repo: read root `CONTEXT.md` and applicable ADRs in `docs/adr/`. See `docs/agents/domain.md`.
