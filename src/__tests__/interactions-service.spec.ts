@@ -19,7 +19,8 @@ function jsonResponse(value: unknown, status = 200): Response {
 describe('interactions service', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.unstubAllEnvs()
+    vi.stubEnv('VITE_CONTENTFUL_SPACE', 'gallery-space')
+    vi.stubEnv('VITE_CONTENTFUL_ACCESS_TOKEN', 'gallery-token')
     vi.stubEnv('VITE_INTERACTION_SPACE', 'interaction-space')
     vi.stubEnv('VITE_INTERACTION_ENVIRONMENT', 'master')
     vi.stubEnv('VITE_INTERACTION_ACCESS_TOKEN', 'interaction-token')
@@ -64,6 +65,9 @@ describe('interactions service', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(3)
     const calls = fetchMock.mock.calls
+    expect(new Headers(calls[0]?.[1]?.headers).get('Authorization')).toBe('Bearer gallery-token')
+    expect(new Headers(calls[1]?.[1]?.headers).get('Authorization')).toBe('Bearer gallery-token')
+    expect(new Headers(calls[2]?.[1]?.headers).get('Authorization')).toBe('Bearer gallery-token')
     const likesQuery = new URL(String(calls[0]?.[0])).searchParams
     const viewerQuery = new URL(String(calls[1]?.[0])).searchParams
     const commentsQuery = new URL(String(calls[2]?.[0])).searchParams

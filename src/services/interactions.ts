@@ -24,12 +24,13 @@ function getInteractionConfig(): InteractionConfig {
     space: import.meta.env.VITE_INTERACTION_SPACE || import.meta.env.VITE_CONTENTFUL_SPACE,
     environment: import.meta.env.VITE_INTERACTION_ENVIRONMENT || 'master',
     accessToken: import.meta.env.VITE_INTERACTION_ACCESS_TOKEN as string,
+    readAccessToken: import.meta.env.VITE_CONTENTFUL_ACCESS_TOKEN as string,
     ipDiscoveryUrl: import.meta.env.VITE_IP_DISCOVERY_URL as string,
   }
 }
 
 function requireConfig(config: InteractionConfig): void {
-  if (!config.space || !config.environment || !config.accessToken) {
+  if (!config.space || !config.environment || !config.accessToken || !config.readAccessToken) {
     throw new Error('Interaction Contentful configuration is incomplete.')
   }
 }
@@ -67,9 +68,12 @@ async function readJson(response: Response): Promise<unknown> {
   }
 }
 
-async function requestDelivery(config: InteractionConfig, query: Record<string, string>): Promise<ContentfulResponse> {
+async function requestDelivery(
+  config: InteractionConfig,
+  query: Record<string, string>,
+): Promise<ContentfulResponse> {
   const response = await fetch(deliveryEntriesUrl(config, query), {
-    headers: { Authorization: `Bearer ${config.accessToken}` },
+    headers: { Authorization: `Bearer ${config.readAccessToken}` },
   })
   if (response.ok === false) throw new Error(`Interaction read failed with status ${response.status}.`)
   const payload = await readJson(response)

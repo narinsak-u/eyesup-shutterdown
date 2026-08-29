@@ -18,10 +18,11 @@ export interface InteractionSummary {
   hasMoreComments: boolean
 }
 
-/** Browser-exposed configuration for the isolated interaction Contentful space. */
+/** Browser-exposed configuration for the interaction Contentful APIs. */
 export interface InteractionConfig {
   space: string
   environment: string
   accessToken: string
+  readAccessToken: string
   ipDiscoveryUrl: string
 }
