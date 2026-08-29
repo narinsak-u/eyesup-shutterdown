@@ -475,29 +475,28 @@ onUnmounted(() => {
       class="fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/70 p-2 md:p-8"
       @click.self="close"
     >
-        <button
-          v-if="items.length > 1"
-          class="absolute left-2 top-1/2 z-20 -translate-y-1/2 cursor-pointer rounded-full bg-white/90 p-2 text-primary transition-opacity duration-200 hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:left-2"
-          type="button"
-          aria-label="Previous image"
-          @click="prev"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
-        </button>
-        <button
-          v-if="items.length > 1"
-          class="absolute right-2 top-1/2 z-20 -translate-y-1/2 cursor-pointer rounded-full bg-white/90 p-2 text-primary transition-opacity duration-200 hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:right-2"
-          type="button"
-          aria-label="Next image"
-          @click="next"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
-        </button>
+      <button
+        v-if="items.length > 1"
+        class="absolute left-2 top-1/2 z-20 -translate-y-1/2 cursor-pointer rounded-full text-white p-2 transition-opacity duration-200 hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:left-20"
+        type="button"
+        aria-label="Previous image"
+        @click="prev"
+      >
+        <span class="material-symbols-outlined text-[28px]" aria-hidden="true">chevron_left</span>
+      </button>
+      <button
+        v-if="items.length > 1"
+        class="absolute right-2 top-1/2 z-20 -translate-y-1/2 cursor-pointer rounded-full p-2 text-white transition-opacity duration-200 hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:right-20"
+        type="button"
+        aria-label="Next image"
+        @click="next"
+      >
+        <span class="material-symbols-outlined text-[28px]" aria-hidden="true">chevron_right</span>
+      </button>
       <div
         class="relative flex min-h-[min(90vh,680px)] max-h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-sm bg-white shadow-2xl md:max-h-[calc(100vh-4rem)] md:min-h-0 md:flex-row"
         @click.stop
       >
-
         <section
           class="flex min-h-[35vh] flex-1 items-center justify-center bg-black md:min-h-0 md:w-[70%] md:flex-none"
         >
@@ -507,7 +506,6 @@ onUnmounted(() => {
             :alt="currentPhoto?.alt || 'Expanded gallery image'"
           />
         </section>
-
 
         <aside class="flex min-h-0 flex-1 flex-col bg-white md:w-[30%] md:flex-none">
           <div class="flex min-h-0 flex-1 flex-col px-5 py-4">
