@@ -1,16 +1,11 @@
 <script setup lang="ts">
 import { computed, watch, onUnmounted } from "vue";
+import type { Photo } from "@/types/gallery";
 
 defineOptions({ name: "GalleryLightbox" });
 
 /** Fullscreen image viewer with previous/next navigation and keyboard support. */
-interface LightboxItem {
-  src: string;
-  alt?: string;
-}
-
-/** Array of gallery items to display in the lightbox. */
-const props = withDefaults(defineProps<{ items: LightboxItem[] }>(), {
+const props = withDefaults(defineProps<{ items: Photo[] }>(), {
   items: () => [],
 });
 
@@ -20,8 +15,11 @@ const isOpen = defineModel<boolean>({ default: false });
 /** Currently selected image index in the items array. Bidirectional binding with parent. */
 const index = defineModel<number>("index", { default: 0 });
 
+/** The complete photo selected by the current index, including interaction identity and metadata. */
+const currentPhoto = computed(() => props.items[index.value]);
+
 /** Returns the src URL of the currently displayed image, or empty string if index is out of bounds. */
-const currentSrc = computed(() => props.items[index.value]?.src ?? "");
+const currentSrc = computed(() => currentPhoto.value?.src ?? "");
 
 /** Advances to the next image. Wraps around to the first image at the end using modulo operator. */
 function next() {
@@ -62,7 +60,11 @@ onUnmounted(() => {
 
 <template>
   <Transition name="lightbox">
-    <div v-if="isOpen" class="fixed inset-0 bg-white z-100 flex items-center justify-center">
+    <div
+      v-if="isOpen"
+      :data-photo-id="currentPhoto?.id"
+      class="fixed inset-0 bg-white z-100 flex items-center justify-center"
+    >
       <button
         class="absolute top-6 cursor-pointer right-6 md:top-8 md:right-8 p-3 text-primary hover:opacity-60 transition-opacity duration-200 z-10"
         @click="close"
@@ -83,8 +85,15 @@ onUnmounted(() => {
       <img
         :src="currentSrc"
         class="max-h-full max-w-full object-contain p-container-margin-mobile md:p-container-margin-desktop"
-        :alt="items[index]?.alt ?? 'Expanded gallery image'"
+        :alt="currentPhoto?.alt ?? 'Expanded gallery image'"
       />
+      <div
+        v-if="currentPhoto"
+        class="absolute bottom-6 left-1/2 -translate-x-1/2 text-center text-primary"
+      >
+        <p class="text-label-sm font-label-sm">{{ currentPhoto.location }}</p>
+        <time class="text-body-sm font-body-sm">{{ currentPhoto.date }}</time>
+      </div>
 
       <button
         v-if="items.length > 1"

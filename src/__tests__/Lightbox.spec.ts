@@ -1,21 +1,48 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import Lightbox from '../components/Lightbox.vue'
+import type { Photo } from '@/types/gallery'
 
-interface LightboxItem {
-  src: string
-  alt?: string
-}
-
-const items: LightboxItem[] = [
-  { src: '/img1.jpg', alt: 'Photo 1' },
-  { src: '/img2.jpg', alt: 'Photo 2' },
-  { src: '/img3.jpg', alt: 'Photo 3' },
+const items: Photo[] = [
+  {
+    id: 'photo-1',
+    thumbSrc: '/thumb1.jpg',
+    src: '/img1.jpg',
+    alt: 'Photo 1',
+    location: 'Paris, FR',
+    date: 'January, 2024',
+    type: 'portrait',
+    category: 'Architecture',
+  },
+  {
+    id: 'photo-2',
+    thumbSrc: '/thumb2.jpg',
+    src: '/img2.jpg',
+    alt: 'Photo 2',
+    location: 'Tokyo, JP',
+    date: 'February, 2024',
+    type: 'landscape',
+    category: 'Nature',
+  },
+  {
+    id: 'photo-3',
+    thumbSrc: '/thumb3.jpg',
+    src: '/img3.jpg',
+    alt: 'Photo 3',
+    location: 'Reykjavik, IS',
+    date: 'March, 2024',
+    type: 'square',
+    category: 'Portrait',
+  },
 ]
 
-const single: LightboxItem[] = [{ src: '/img.jpg' }]
+const single: Photo[] = [
+  {
+    ...items[0],
+    id: 'single-photo',
+    src: '/img.jpg',
+  },
+]
 
 describe('Lightbox', () => {
   it('renders the current item image based on index', () => {
@@ -23,6 +50,21 @@ describe('Lightbox', () => {
       props: { items, modelValue: true, index: 1 },
     })
     expect(wrapper.find('img').attributes('src')).toBe('/img2.jpg')
+  })
+  it('renders selected photo metadata and keeps its id through navigation', async () => {
+    const wrapper = mount(Lightbox, {
+      props: { items, modelValue: true, index: 0 },
+    })
+
+    expect(wrapper.find('[data-photo-id]').attributes('data-photo-id')).toBe('photo-1')
+    expect(wrapper.text()).toContain('Paris, FR')
+    expect(wrapper.text()).toContain('January, 2024')
+
+    await wrapper.find('[aria-label="Next image"]').trigger('click')
+
+    expect(wrapper.find('[data-photo-id]').attributes('data-photo-id')).toBe('photo-2')
+    expect(wrapper.text()).toContain('Tokyo, JP')
+    expect(wrapper.text()).toContain('February, 2024')
   })
 
   it('falls back to default alt when item has no alt', () => {
