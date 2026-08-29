@@ -44,6 +44,19 @@ describe('anonymous identity utilities', () => {
     expect(fetchMock).toHaveBeenCalledWith('https://example.test/ip', expect.objectContaining({ signal: expect.any(AbortSignal) }))
   })
 
+  it('uses the default IP endpoint when no endpoint is configured', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ ip: '203.0.113.8' }), { status: 200 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(discoverPublicIp()).resolves.toBe('203.0.113.8')
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api64.ipify.org?format=json',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    )
+  })
+
   it('rejects a failed IP endpoint response', async () => {
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(new Response('', { status: 503 })))
 

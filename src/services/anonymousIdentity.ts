@@ -6,6 +6,7 @@ import mascot05 from '@/assets/avatars/mascot-05.svg'
 import mascot06 from '@/assets/avatars/mascot-06.svg'
 
 const IP_DISCOVERY_TIMEOUT_MS = 5_000
+const DEFAULT_IP_DISCOVERY_URL = 'https://api64.ipify.org?format=json'
 const ADJECTIVES = ['amber', 'brisk', 'calm', 'dapper', 'gentle', 'mellow', 'nimble', 'sunny']
 const NOUNS = ['badger', 'beaver', 'otter', 'panda', 'quokka', 'robin', 'seal', 'turtle']
 const NUMBERS = ['7', '13', '21', '28', '34', '42', '56', '64']
@@ -88,8 +89,9 @@ async function readIpResponse(response: Response): Promise<string> {
 }
 
 /** Discovers and validates a visitor's public IP without exposing it to Contentful. */
-export async function discoverPublicIp(endpoint: string): Promise<string> {
-  if (typeof endpoint !== 'string' || !endpoint.trim()) throw new Error('An IP discovery endpoint is required.')
+export async function discoverPublicIp(
+  endpoint = DEFAULT_IP_DISCOVERY_URL,
+): Promise<string> {
 
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), IP_DISCOVERY_TIMEOUT_MS)
