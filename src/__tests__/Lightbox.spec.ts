@@ -61,6 +61,8 @@ describe('Lightbox', () => {
     expect(wrapper.text()).toContain('January, 2024')
 
     await wrapper.find('[aria-label="Next image"]').trigger('click')
+    expect(wrapper.find('img').attributes('src')).toBe('/img2.jpg')
+    expect(wrapper.find('img').attributes('alt')).toBe('Photo 2')
 
     expect(wrapper.find('[data-photo-id]').attributes('data-photo-id')).toBe('photo-2')
     expect(wrapper.text()).toContain('Tokyo, JP')
