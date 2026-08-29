@@ -58,10 +58,20 @@ const dialogRef = useTemplateRef<HTMLDivElement>("dialog");
 const hasMoreComments = computed(() => summary.value?.hasMoreComments ?? false);
 
 const likeDisabled = computed(
-  () => loadingInteractions.value || likePending.value || likeWriteInFlight.value || !identity.value || !summary.value,
+  () =>
+    loadingInteractions.value ||
+    likePending.value ||
+    likeWriteInFlight.value ||
+    !identity.value ||
+    !summary.value,
 );
 const commentDisabled = computed(
-  () => loadingInteractions.value || commentPending.value || commentWriteInFlight.value || !identity.value || !summary.value,
+  () =>
+    loadingInteractions.value ||
+    commentPending.value ||
+    commentWriteInFlight.value ||
+    !identity.value ||
+    !summary.value,
 );
 const commentCount = computed(() => comments.value.length);
 
@@ -168,13 +178,7 @@ async function loadInteractions(photo: Photo): Promise<void> {
 async function loadMoreComments(): Promise<void> {
   const photo = currentPhoto.value;
   const viewer = identity.value;
-  if (
-    !photo ||
-    !viewer ||
-    !summary.value ||
-    !hasMoreComments.value ||
-    loadingMoreComments.value
-  ) {
+  if (!photo || !viewer || !summary.value || !hasMoreComments.value || loadingMoreComments.value) {
     return;
   }
 
@@ -364,7 +368,8 @@ function handleKeydown(event: KeyboardEvent) {
     }
 
     const activeElement = document.activeElement;
-    const activeIndex = activeElement instanceof HTMLElement ? focusable.indexOf(activeElement) : -1;
+    const activeIndex =
+      activeElement instanceof HTMLElement ? focusable.indexOf(activeElement) : -1;
     if (!dialog.contains(activeElement) || activeIndex === -1) {
       event.preventDefault();
       focusable[0]?.focus();
@@ -474,7 +479,6 @@ onUnmounted(() => {
         class="relative flex min-h-[min(90vh,680px)] max-h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-sm bg-white shadow-2xl md:max-h-[calc(100vh-4rem)] md:min-h-0 md:flex-row"
         @click.stop
       >
-
         <button
           v-if="items.length > 1"
           class="absolute left-3 top-1/2 z-20 -translate-y-1/2 cursor-pointer rounded-full bg-white/90 p-2 text-primary transition-opacity duration-200 hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:left-5"
@@ -485,7 +489,9 @@ onUnmounted(() => {
           <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
         </button>
 
-        <section class="flex min-h-[35vh] flex-1 items-center justify-center bg-black md:min-h-0 md:w-3/5 md:flex-none">
+        <section
+          class="flex min-h-[35vh] flex-1 items-center justify-center bg-black md:min-h-0 md:w-[70%] md:flex-none"
+        >
           <img
             :src="currentSrc"
             class="max-h-[55vh] w-full object-contain md:max-h-[calc(100vh-4rem)]"
@@ -503,14 +509,13 @@ onUnmounted(() => {
           <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
         </button>
 
-        <aside class="flex min-h-0 flex-1 flex-col bg-white md:w-2/5 md:flex-none">
-
+        <aside class="flex min-h-0 flex-1 flex-col bg-white md:w-[30%] md:flex-none">
           <div class="flex min-h-0 flex-1 flex-col px-5 py-4">
             <div class="shrink-0 border-b border-gray-200 pb-4 text-sm">
-              <!-- <p v-if="currentPhoto?.alt" class="text-primary font-semibold">{{ currentPhoto.alt }}</p> -->
               <p class="mt-2 text-body-sm text-secondary">
                 <span>{{ currentPhoto?.location }}</span>
-                <span aria-hidden="true"> · </span>
+              </p>
+              <p class="text-xs text-secondary font-semibold">
                 <time>{{ currentPhoto?.date }}</time>
               </p>
             </div>
@@ -527,7 +532,10 @@ onUnmounted(() => {
               <p v-else-if="!identity && interactionError" class="py-6 text-body-sm text-secondary">
                 Comments are unavailable until an anonymous identity can be created.
               </p>
-              <p v-else-if="!loadingInteractions && comments.length === 0" class="py-6 text-body-sm text-secondary">
+              <p
+                v-else-if="!loadingInteractions && comments.length === 0"
+                class="py-6 text-body-sm text-secondary"
+              >
                 No comments yet.
               </p>
 
@@ -544,7 +552,9 @@ onUnmounted(() => {
                       <span class="font-semibold text-primary">{{ commentUsername(comment) }}</span>
                       <span aria-hidden="true"> · </span>
                       <span v-if="comment.status === 'pending'">Posting…</span>
-                      <time v-else :datetime="comment.createdAt">{{ formatRelativeTime(comment.createdAt) }}</time>
+                      <time v-else :datetime="comment.createdAt">{{
+                        formatRelativeTime(comment.createdAt)
+                      }}</time>
                     </p>
                     <p class="break-words text-[12px] leading-5 text-primary">{{ comment.text }}</p>
                   </div>
@@ -578,7 +588,9 @@ onUnmounted(() => {
                   </span>
                   <span>{{ summary?.likeCount ?? 0 }} likes</span>
                 </button>
-                <span class="text-body-sm text-secondary" aria-live="polite">{{ commentCount }} comments</span>
+                <span class="text-body-sm text-secondary" aria-live="polite"
+                  >{{ commentCount }} comments</span
+                >
               </div>
 
               <form class="mt-4 flex gap-2" @submit.prevent="submitComment">
@@ -602,11 +614,18 @@ onUnmounted(() => {
                   {{ commentPending || commentWriteInFlight ? "Posting…" : "Post" }}
                 </button>
               </form>
-              <p class="mt-1 text-right text-body-sm text-secondary">{{ commentDraft.length }}/500</p>
+              <p class="mt-1 text-right text-body-sm text-secondary">
+                {{ commentDraft.length }}/500
+              </p>
             </div>
           </div>
 
-          <p v-if="interactionError" class="shrink-0 border-t border-red-200 bg-red-50 px-5 py-3 text-body-sm text-red-800" role="alert" aria-live="assertive">
+          <p
+            v-if="interactionError"
+            class="shrink-0 border-t border-red-200 bg-red-50 px-5 py-3 text-body-sm text-red-800"
+            role="alert"
+            aria-live="assertive"
+          >
             {{ interactionError }}
           </p>
         </aside>
