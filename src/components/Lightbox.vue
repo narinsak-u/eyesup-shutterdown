@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, shallowRef, watch } from "vue";
+import { computed, nextTick, onUnmounted, shallowRef, useTemplateRef, watch } from "vue";
 
 import { createAnonymousIdentity, discoverPublicIp, hashIp } from "@/services/anonymousIdentity";
 import {
@@ -40,11 +40,16 @@ const commentPending = shallowRef(false);
 const interactionError = shallowRef<string | null>(null);
 
 let interactionRequestId = 0;
-let writeRequestId = 0;
+let likeRequestId = 0;
+let commentRequestId = 0;
 let loadedCommentCount = 0;
 let likeEntryId: string | null = null;
 let identityPromise: Promise<AnonymousIdentity> | null = null;
 let previousBodyOverflow: string | null = null;
+let wasOpen = false;
+let openerElement: HTMLElement | null = null;
+
+const dialogRef = useTemplateRef<HTMLDivElement>("dialog");
 
 const hasMoreComments = computed(() => summary.value?.hasMoreComments ?? false);
 const commentCount = computed(() => comments.value.length);
@@ -57,15 +62,21 @@ function isCurrentPhoto(photoId: string): boolean {
   return isOpen.value && currentPhotoId.value === photoId;
 }
 
+function invalidateWriteRequests(): void {
+  likeRequestId += 1;
+  commentRequestId += 1;
+  likePending.value = false;
+  commentPending.value = false;
+}
+
 function resetInteractionState(): void {
+  invalidateWriteRequests();
   summary.value = null;
   comments.value = [];
   commentDraft.value = "";
   interactionError.value = null;
   loadingInteractions.value = false;
   loadingMoreComments.value = false;
-  likePending.value = false;
-  commentPending.value = false;
   loadedCommentCount = 0;
   likeEntryId = null;
 }
@@ -170,7 +181,7 @@ async function toggleLike(): Promise<void> {
   if (!photo || !viewer || !currentSummary || likePending.value) return;
 
   const photoId = photo.id;
-  const requestId = ++writeRequestId;
+  const requestId = ++likeRequestId;
   const wasLiked = currentSummary.likedByViewer;
   const previousLikeCount = currentSummary.likeCount;
   const previousLikeEntryId = likeEntryId;
@@ -185,15 +196,18 @@ async function toggleLike(): Promise<void> {
 
   try {
     if (nextLiked) {
-      likeEntryId = await createLike(photoId, viewer.ipHash);
+      const createdLikeId = await createLike(photoId, viewer.ipHash);
+      if (requestId !== likeRequestId || !isCurrentPhoto(photoId)) return;
+      likeEntryId = createdLikeId;
     } else if (previousLikeEntryId) {
       await deleteLike(previousLikeEntryId);
+      if (requestId !== likeRequestId || !isCurrentPhoto(photoId)) return;
       likeEntryId = null;
     } else {
       throw new Error("The existing like could not be identified.");
     }
   } catch (error) {
-    if (requestId === writeRequestId && isCurrentPhoto(photoId) && summary.value) {
+    if (requestId === likeRequestId && isCurrentPhoto(photoId) && summary.value) {
       summary.value = {
         ...summary.value,
         likeCount: previousLikeCount,
@@ -203,7 +217,7 @@ async function toggleLike(): Promise<void> {
       interactionError.value = errorMessage(error, "Could not update your like.");
     }
   } finally {
-    if (requestId === writeRequestId && isCurrentPhoto(photoId)) likePending.value = false;
+    if (requestId === likeRequestId && isCurrentPhoto(photoId)) likePending.value = false;
   }
 }
 
@@ -224,7 +238,7 @@ async function submitComment(): Promise<void> {
   }
 
   const photoId = photo.id;
-  const requestId = ++writeRequestId;
+  const requestId = ++commentRequestId;
   const provisionalId = `pending-${requestId}`;
   const provisionalComment: InteractionComment = {
     id: provisionalId,
@@ -242,23 +256,22 @@ async function submitComment(): Promise<void> {
 
   try {
     const createdComment = await createComment(photoId, viewer.ipHash, text);
-    if (requestId !== writeRequestId || !isCurrentPhoto(photoId)) return;
+    if (requestId !== commentRequestId || !isCurrentPhoto(photoId)) return;
     comments.value = comments.value.map((comment) =>
       comment.id === provisionalId ? createdComment : comment,
     );
     if (summary.value) summary.value = { ...summary.value, comments: comments.value };
   } catch (error) {
-    if (requestId === writeRequestId && isCurrentPhoto(photoId)) {
+    if (requestId === commentRequestId && isCurrentPhoto(photoId)) {
       comments.value = comments.value.filter((comment) => comment.id !== provisionalId);
       commentDraft.value = draft;
       interactionError.value = errorMessage(error, "Could not post your comment.");
       if (summary.value) summary.value = { ...summary.value, comments: comments.value };
     }
   } finally {
-    if (requestId === writeRequestId && isCurrentPhoto(photoId)) commentPending.value = false;
+    if (requestId === commentRequestId && isCurrentPhoto(photoId)) commentPending.value = false;
   }
 }
-
 /** Advances to the next image, wrapping around at the end of the collection. */
 function next() {
   if (props.items.length === 0) return;
@@ -272,14 +285,65 @@ function prev() {
 }
 
 const close = () => {
+  invalidateWriteRequests();
+  interactionRequestId += 1;
   isOpen.value = false;
 };
+
+function getFocusableElements(): HTMLElement[] {
+  const dialog = dialogRef.value;
+  if (!dialog) return [];
+
+  return Array.from(
+    dialog.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ),
+  );
+}
+
+function focusFirstElement(): void {
+  getFocusableElements()[0]?.focus();
+}
+
+function handleFocusIn(event: FocusEvent): void {
+  const dialog = dialogRef.value;
+  if (!isOpen.value || !dialog) return;
+  const target = event.target;
+  if (!(target instanceof Node) || !dialog.contains(target)) focusFirstElement();
+}
 
 function handleKeydown(event: KeyboardEvent) {
   if (event.key === "Escape") {
     close();
     return;
   }
+
+  if (event.key === "Tab") {
+    const dialog = dialogRef.value;
+    const focusable = getFocusableElements();
+    if (!dialog || focusable.length === 0) {
+      event.preventDefault();
+      return;
+    }
+
+    const activeElement = document.activeElement;
+    const activeIndex = activeElement instanceof HTMLElement ? focusable.indexOf(activeElement) : -1;
+    if (!dialog.contains(activeElement) || activeIndex === -1) {
+      event.preventDefault();
+      focusable[0]?.focus();
+      return;
+    }
+
+    if (event.shiftKey && activeIndex === 0) {
+      event.preventDefault();
+      focusable.at(-1)?.focus();
+    } else if (!event.shiftKey && activeIndex === focusable.length - 1) {
+      event.preventDefault();
+      focusable[0]?.focus();
+    }
+    return;
+  }
+
   const target = event.target;
   if (
     target instanceof HTMLInputElement ||
@@ -290,6 +354,18 @@ function handleKeydown(event: KeyboardEvent) {
   }
   if (event.key === "ArrowLeft") prev();
   else if (event.key === "ArrowRight") next();
+}
+
+function rememberOpener(): void {
+  const activeElement = document.activeElement;
+  openerElement =
+    activeElement instanceof HTMLElement && activeElement !== document.body ? activeElement : null;
+}
+
+function restoreFocus(): void {
+  const opener = openerElement;
+  openerElement = null;
+  if (opener && document.contains(opener)) void nextTick(() => opener.focus());
 }
 
 function lockBodyScroll(): void {
@@ -308,20 +384,40 @@ watch(
   [isOpen, currentPhotoId],
   ([open, photoId]) => {
     if (open) {
+      if (!wasOpen) {
+        rememberOpener();
+        wasOpen = true;
+        void nextTick(focusFirstElement);
+      }
       lockBodyScroll();
       window.addEventListener("keydown", handleKeydown);
+      document.addEventListener("focusin", handleFocusIn);
       if (photoId && currentPhoto.value) void loadInteractions(currentPhoto.value);
     } else {
       window.removeEventListener("keydown", handleKeydown);
+      document.removeEventListener("focusin", handleFocusIn);
+      invalidateWriteRequests();
+      interactionRequestId += 1;
       restoreBodyScroll();
+      if (wasOpen) {
+        wasOpen = false;
+        restoreFocus();
+      }
     }
   },
   { immediate: true },
 );
 
 onUnmounted(() => {
+  invalidateWriteRequests();
+  interactionRequestId += 1;
   window.removeEventListener("keydown", handleKeydown);
+  document.removeEventListener("focusin", handleFocusIn);
   restoreBodyScroll();
+  if (wasOpen) {
+    wasOpen = false;
+    restoreFocus();
+  }
 });
 </script>
 
@@ -329,6 +425,8 @@ onUnmounted(() => {
   <Transition name="lightbox">
     <div
       v-if="isOpen"
+      ref="dialog"
+      tabindex="-1"
       class="fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/70 p-2 md:p-8"
       role="dialog"
       aria-modal="true"
@@ -460,7 +558,7 @@ onUnmounted(() => {
                 <span class="text-body-sm text-secondary" aria-live="polite">{{ commentCount }} comments</span>
               </div>
 
-              <form class="mt-4 flex gap-2" @submit="submitComment">
+              <form class="mt-4 flex gap-2" @submit.prevent="submitComment">
                 <label class="sr-only" for="lightbox-comment">Add a comment</label>
                 <textarea
                   id="lightbox-comment"

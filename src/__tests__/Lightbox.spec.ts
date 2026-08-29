@@ -309,4 +309,130 @@ describe("Lightbox", () => {
     expect(wrapper.find('[aria-label="Like photo"]').attributes("disabled")).toBeDefined();
     expect(wrapper.find("textarea").attributes("disabled")).toBeDefined();
   });
+
+  it("prevents native form submission", async () => {
+    const wrapper = await openLightbox();
+    const event = new Event("submit", { cancelable: true });
+
+    wrapper.find("form").element.dispatchEvent(event);
+    await flushPromises();
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("keeps like and comment writes pending independently", async () => {
+    const likeRequest = deferred<string>();
+    const commentRequest = deferred<InteractionComment>();
+    vi.mocked(createLike).mockReturnValue(likeRequest.promise);
+    vi.mocked(createComment).mockReturnValue(commentRequest.promise);
+    const wrapper = await openLightbox();
+
+    await wrapper.find('[aria-label="Like photo"]').trigger("click");
+    await wrapper.find("textarea").setValue("Independent comment");
+    await wrapper.find("form").trigger("submit");
+
+    expect(wrapper.find('[aria-label="Unlike photo"]').attributes("disabled")).toBeDefined();
+    expect(wrapper.find('button[type="submit"]').attributes("disabled")).toBeDefined();
+
+    likeRequest.resolve("like-created");
+    await flushPromises();
+    expect(wrapper.find('[aria-label="Unlike photo"]').attributes("disabled")).toBeUndefined();
+    expect(wrapper.find('button[type="submit"]').attributes("disabled")).toBeDefined();
+
+    commentRequest.resolve(comment("created", "Independent comment"));
+    await flushPromises();
+    expect(wrapper.find('button[type="submit"]').attributes("disabled")).toBeUndefined();
+  });
+
+  it("ignores a stale comment failure after navigation", async () => {
+    const commentRequest = deferred<InteractionComment>();
+    vi.mocked(createComment).mockReturnValue(commentRequest.promise);
+    const wrapper = await openLightbox({ items, index: 0 });
+
+    await wrapper.find("textarea").setValue("Stale comment");
+    await wrapper.find("form").trigger("submit");
+    await wrapper.find('[aria-label="Next image"]').trigger("click");
+    await flushPromises();
+
+    commentRequest.reject(new Error("Stale comment failure"));
+    await flushPromises();
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+    expect(wrapper.find("textarea").element.value).toBe("");
+    expect(wrapper.find('[aria-label="Comments"]').findAll("li")).toHaveLength(5);
+  });
+
+  it("ignores stale writes after closing and reopening the same photo", async () => {
+    const commentRequest = deferred<InteractionComment>();
+    vi.mocked(createComment).mockReturnValue(commentRequest.promise);
+    const wrapper = await openLightbox();
+
+    await wrapper.find("textarea").setValue("Original draft");
+    await wrapper.find("form").trigger("submit");
+    await wrapper.setProps({ modelValue: false });
+    await wrapper.setProps({ modelValue: true });
+    await flushPromises();
+    await wrapper.find("textarea").setValue("Current draft");
+
+    commentRequest.reject(new Error("Stale comment failure"));
+    await flushPromises();
+
+    expect(wrapper.find("textarea").element.value).toBe("Current draft");
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+  });
+
+  it("does not let a stale like completion replace a fresh like entry", async () => {
+    const likeRequest = deferred<string>();
+    vi.mocked(createLike).mockReturnValue(likeRequest.promise);
+    vi.mocked(fetchInteractionSummary)
+      .mockResolvedValueOnce(makeSummary({ likedByViewer: false }))
+      .mockResolvedValueOnce(makeSummary({ likedByViewer: true, viewerLikeId: "fresh-like" }));
+    const wrapper = await openLightbox();
+
+    await wrapper.find('[aria-label="Like photo"]').trigger("click");
+    await wrapper.setProps({ modelValue: false });
+    await wrapper.setProps({ modelValue: true });
+    await flushPromises();
+
+    likeRequest.resolve("stale-like");
+    await flushPromises();
+    await wrapper.find('[aria-label="Unlike photo"]').trigger("click");
+    await flushPromises();
+
+    expect(vi.mocked(deleteLike)).toHaveBeenCalledWith("fresh-like");
+  });
+
+  it("traps focus in the dialog and restores focus to its opener", async () => {
+    const opener = document.createElement("button");
+    document.body.append(opener);
+    opener.focus();
+    const wrapper = mount(Lightbox, {
+      attachTo: document.body,
+      props: { items: single, modelValue: false, index: 0 },
+    });
+
+    await wrapper.setProps({ modelValue: true });
+    await flushPromises();
+    const closeButton = wrapper.find('[aria-label="Close lightbox"]');
+    const submitButton = wrapper.find('button[type="submit"]');
+    expect(document.activeElement).toBe(closeButton.element);
+
+    const outside = document.createElement("button");
+    document.body.append(outside);
+    outside.focus();
+    expect(document.activeElement).toBe(closeButton.element);
+
+    submitButton.element.focus();
+    submitButton.element.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true }));
+    expect(document.activeElement).toBe(closeButton.element);
+
+    await wrapper.setProps({ modelValue: false });
+    await flushPromises();
+    expect(document.activeElement).toBe(opener);
+
+    wrapper.unmount();
+    opener.remove();
+    outside.remove();
+  });
+
 });
