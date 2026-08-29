@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Blue beaver mascot">
+  <rect width="96" height="96" rx="28" fill="#C8E7F2"/>
+  <circle cx="48" cy="52" r="25" fill="#4C8FA5"/>
+  <path d="M29 36 25 20l15 10M67 36l4-16-15 10" fill="#4C8FA5"/>
+  <circle cx="38" cy="49" r="4" fill="#183840"/><circle cx="58" cy="49" r="4" fill="#183840"/>
+  <path d="M40 61q8 7 16 0" fill="none" stroke="#183840" stroke-width="3" stroke-linecap="round"/>
+  <path d="M44 55h8" stroke="#EAF8FB" stroke-width="4" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Orange robin mascot">
+  <rect width="96" height="96" rx="28" fill="#F8D2B2"/>
+  <circle cx="48" cy="52" r="25" fill="#E08A4F"/>
+  <path d="M31 36 24 20l17 11M65 36l7-16-17 11" fill="#E08A4F"/>
+  <circle cx="39" cy="49" r="4" fill="#4D2E20"/><circle cx="57" cy="49" r="4" fill="#4D2E20"/>
+  <path d="m45 56 3 4 3-4" fill="#F8D2B2"/>
+  <path d="M41 66q7 5 14 0" fill="none" stroke="#4D2E20" stroke-width="3" stroke-linecap="round"/>
+</svg>
