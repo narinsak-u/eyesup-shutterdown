@@ -128,11 +128,10 @@ describe("Lightbox", () => {
     expect(wrapper.find("img").attributes("src")).toBe("/img2.jpg");
   });
 
-  it("renders the fixed account header, metadata, and five newest comments", async () => {
+  it("renders metadata and five newest comments", async () => {
     const wrapper = await openLightbox({ items, index: 0 });
 
     expect(wrapper.find('[role="dialog"]').attributes("data-photo-id")).toBe("photo-1");
-    expect(wrapper.find("#lightbox-title").text()).toContain("eyesup_gallery");
     expect(wrapper.find('[aria-label="Comments"]').findAll("li")).toHaveLength(5);
     expect(wrapper.text()).toContain("Paris, FR");
     expect(wrapper.text()).toContain("January, 2024");
@@ -228,6 +227,20 @@ describe("Lightbox", () => {
     expect(wrapper.emitted("update:modelValue")?.[0]?.[0]).toBe(false);
     await wrapper.setProps({ modelValue: false });
     expect(document.body.style.overflow).toBe("scroll");
+  });
+
+  it("closes when clicking the backdrop but not the card", async () => {
+    const wrapper = mount(Lightbox, {
+      props: { items: single, modelValue: true, index: 0 },
+    });
+    const dialog = wrapper.find('[role="dialog"]');
+    const card = dialog.find(":scope > div");
+
+    await card.trigger("click");
+    expect(wrapper.emitted("update:modelValue")).toBeUndefined();
+
+    await dialog.trigger("click");
+    expect(wrapper.emitted("update:modelValue")?.[0]?.[0]).toBe(false);
   });
 
   it("restores body overflow when destroyed while open", () => {
@@ -506,18 +519,19 @@ describe("Lightbox", () => {
 
     await wrapper.setProps({ modelValue: true });
     await flushPromises();
-    const closeButton = wrapper.find('[aria-label="Close lightbox"]');
+    const dialog = wrapper.find('[role="dialog"]');
+    const firstFocusable = dialog.element.querySelector("button:not([disabled])") as HTMLElement;
     const submitButton = wrapper.find('button[type="submit"]');
-    expect(document.activeElement).toBe(closeButton.element);
+    expect(dialog.element.contains(document.activeElement)).toBe(true);
 
     const outside = document.createElement("button");
     document.body.append(outside);
     outside.focus();
-    expect(document.activeElement).toBe(closeButton.element);
+    expect(document.activeElement).toBe(firstFocusable);
 
     submitButton.element.focus();
     submitButton.element.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true }));
-    expect(document.activeElement).toBe(closeButton.element);
+    expect(document.activeElement).toBe(firstFocusable);
 
     await wrapper.setProps({ modelValue: false });
     await flushPromises();

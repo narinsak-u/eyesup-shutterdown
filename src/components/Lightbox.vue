@@ -337,7 +337,9 @@ function getFocusableElements(): HTMLElement[] {
 }
 
 function focusFirstElement(): void {
-  getFocusableElements()[0]?.focus();
+  const dialog = dialogRef.value;
+  const firstFocusable = getFocusableElements()[0];
+  (firstFocusable ?? dialog)?.focus();
 }
 
 function handleFocusIn(event: FocusEvent): void {
@@ -464,21 +466,14 @@ onUnmounted(() => {
       tabindex="-1"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="lightbox-title"
       :data-photo-id="currentPhoto?.id"
       class="fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-black/70 p-2 md:p-8"
+      @click.self="close"
     >
       <div
         class="relative flex min-h-[min(90vh,680px)] max-h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-sm bg-white shadow-2xl md:max-h-[calc(100vh-4rem)] md:min-h-0 md:flex-row"
+        @click.stop
       >
-        <button
-          class="absolute right-3 top-3 z-20 cursor-pointer rounded-full bg-white/90 p-2 text-primary transition-opacity duration-200 hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:right-5 md:top-5"
-          type="button"
-          aria-label="Close lightbox"
-          @click="close"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">close</span>
-        </button>
 
         <button
           v-if="items.length > 1"
@@ -509,23 +504,10 @@ onUnmounted(() => {
         </button>
 
         <aside class="flex min-h-0 flex-1 flex-col bg-white md:w-2/5 md:flex-none">
-          <header class="flex shrink-0 items-center gap-3 border-b border-gray-200 px-5 py-4" id="lightbox-title">
-            <img
-              v-if="identity"
-              :src="identity.avatarUrl"
-              alt=""
-              class="h-9 w-9 rounded-full border border-gray-200"
-            />
-            <div class="min-w-0">
-              <p class="truncate text-label-sm font-label-sm text-primary">eyesup_gallery</p>
-              <p v-if="identity" class="truncate text-body-sm text-secondary">{{ identity.username }}</p>
-              <p v-else class="text-body-sm text-secondary">Anonymous viewer</p>
-            </div>
-          </header>
 
           <div class="flex min-h-0 flex-1 flex-col px-5 py-4">
-            <div class="shrink-0 border-b border-gray-200 pb-4">
-              <p v-if="currentPhoto?.alt" class="text-body-md text-primary">{{ currentPhoto.alt }}</p>
+            <div class="shrink-0 border-b border-gray-200 pb-4 text-sm">
+              <!-- <p v-if="currentPhoto?.alt" class="text-primary font-semibold">{{ currentPhoto.alt }}</p> -->
               <p class="mt-2 text-body-sm text-secondary">
                 <span>{{ currentPhoto?.location }}</span>
                 <span aria-hidden="true"> · </span>
@@ -549,7 +531,7 @@ onUnmounted(() => {
                 No comments yet.
               </p>
 
-              <ul v-else class="space-y-4">
+              <ul v-else class="space-y-2">
                 <li v-for="comment in comments" :key="comment.id" class="flex gap-3">
                   <img
                     v-if="commentAvatar(comment)"
