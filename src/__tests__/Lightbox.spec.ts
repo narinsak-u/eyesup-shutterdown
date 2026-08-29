@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
+import type { Component } from "vue";
 
 import { createAnonymousIdentity, discoverPublicIp, hashIp } from "@/services/anonymousIdentity";
 import {
@@ -11,6 +12,9 @@ import {
 import type { InteractionComment, InteractionSummary } from "@/types/interactions";
 import type { Photo } from "@/types/gallery";
 import Lightbox from "../components/Lightbox.vue";
+
+// Vue Test Utils loses the SFC's model prop type at this test boundary.
+const LightboxComponent = Lightbox as unknown as Component;
 
 const IP_HASH = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 const viewer = { ipHash: IP_HASH, username: "calm-otter-13", avatarUrl: "/mascot.svg" };
@@ -61,7 +65,7 @@ const items: Photo[] = [
   },
 ];
 
-const single: Photo[] = [{ ...items[0], id: "single-photo", src: "/img.jpg" }];
+const single: Photo[] = [{ ...items[0]!, id: "single-photo", src: "/img.jpg" }];
 
 function comment(id: string, text = `Comment ${id}`): InteractionComment {
   return {
@@ -97,7 +101,7 @@ function deferred<T>() {
 async function openLightbox(
   props: { items?: Photo[]; modelValue?: boolean; index?: number } = {},
 ) {
-  const wrapper = mount(Lightbox, {
+  const wrapper = mount(LightboxComponent, {
     props: { items: single, modelValue: true, index: 0, ...props },
   });
   await flushPromises();
@@ -122,7 +126,7 @@ describe("Lightbox", () => {
   });
 
   it("renders the current item image based on index", () => {
-    const wrapper = mount(Lightbox, {
+    const wrapper = mount(LightboxComponent, {
       props: { items, modelValue: true, index: 1 },
     });
     expect(wrapper.find("img").attributes("src")).toBe("/img2.jpg");
@@ -143,7 +147,7 @@ describe("Lightbox", () => {
   });
 
   it("bounds the mobile interaction card to the viewport while retaining desktop sizing", () => {
-    const wrapper = mount(Lightbox, {
+    const wrapper = mount(LightboxComponent, {
       props: { items: single, modelValue: true, index: 0 },
     });
 
@@ -152,7 +156,7 @@ describe("Lightbox", () => {
     expect(card.classes()).toContain("md:max-h-[calc(100vh-4rem)]");
   });
   it("retains fullscreen backdrop semantics on the open dialog root", () => {
-    const wrapper = mount(Lightbox, {
+    const wrapper = mount(LightboxComponent, {
       props: { items: single, modelValue: true, index: 0 },
     });
 
@@ -182,20 +186,20 @@ describe("Lightbox", () => {
   });
 
   it("falls back to default alt when item has no alt", () => {
-    const wrapper = mount(Lightbox, {
-      props: { items: [{ ...single[0], alt: "" }], modelValue: true, index: 0 },
+    const wrapper = mount(LightboxComponent, {
+      props: { items: [{ ...single[0]!, alt: "" }], modelValue: true, index: 0 },
     });
     expect(wrapper.find("img").attributes("alt")).toBe("Expanded gallery image");
   });
 
   it("emits update:index on next and previous button clicks", async () => {
-    const nextWrapper = mount(Lightbox, {
+    const nextWrapper = mount(LightboxComponent, {
       props: { items, modelValue: true, index: 0 },
     });
     await nextWrapper.find('[aria-label="Next image"]').trigger("click");
     expect(nextWrapper.emitted("update:index")?.[0]?.[0]).toBe(1);
 
-    const prevWrapper = mount(Lightbox, {
+    const prevWrapper = mount(LightboxComponent, {
       props: { items, modelValue: true, index: 1 },
     });
     await prevWrapper.find('[aria-label="Previous image"]').trigger("click");
@@ -203,7 +207,7 @@ describe("Lightbox", () => {
   });
 
   it("places navigation controls outside the card", () => {
-    const wrapper = mount(Lightbox, {
+    const wrapper = mount(LightboxComponent, {
       props: { items, modelValue: true, index: 0 },
     });
     const dialog = wrapper.find('[role="dialog"]');
@@ -217,13 +221,13 @@ describe("Lightbox", () => {
   });
 
   it("wraps navigation and hides controls for a single item", async () => {
-    const nextWrapper = mount(Lightbox, {
+    const nextWrapper = mount(LightboxComponent, {
       props: { items, modelValue: true, index: 2 },
     });
     await nextWrapper.find('[aria-label="Next image"]').trigger("click");
     expect(nextWrapper.emitted("update:index")?.[0]?.[0]).toBe(0);
 
-    const singleWrapper = mount(Lightbox, {
+    const singleWrapper = mount(LightboxComponent, {
       props: { items: single, modelValue: true, index: 0 },
     });
     expect(singleWrapper.find('[aria-label="Next image"]').exists()).toBe(false);
@@ -232,7 +236,7 @@ describe("Lightbox", () => {
 
   it("closes on Escape and restores the previous body overflow", async () => {
     document.body.style.overflow = "scroll";
-    const wrapper = mount(Lightbox, {
+    const wrapper = mount(LightboxComponent, {
       props: { items: single, modelValue: false, index: 0 },
     });
     await wrapper.setProps({ modelValue: true });
@@ -244,7 +248,7 @@ describe("Lightbox", () => {
   });
 
   it("closes when clicking the backdrop but not the card", async () => {
-    const wrapper = mount(Lightbox, {
+    const wrapper = mount(LightboxComponent, {
       props: { items: single, modelValue: true, index: 0 },
     });
     const dialog = wrapper.find('[role="dialog"]');
@@ -259,7 +263,7 @@ describe("Lightbox", () => {
 
   it("restores body overflow when destroyed while open", () => {
     document.body.style.overflow = "clip";
-    const wrapper = mount(Lightbox, {
+    const wrapper = mount(LightboxComponent, {
       props: { items: single, modelValue: true, index: 0 },
     });
     expect(document.body.style.overflow).toBe("hidden");
@@ -540,7 +544,7 @@ describe("Lightbox", () => {
     const opener = document.createElement("button");
     document.body.append(opener);
     opener.focus();
-    const wrapper = mount(Lightbox, {
+    const wrapper = mount(LightboxComponent, {
       attachTo: document.body,
       props: { items: single, modelValue: false, index: 0 },
     });
@@ -557,7 +561,7 @@ describe("Lightbox", () => {
     outside.focus();
     expect(document.activeElement).toBe(firstFocusable);
 
-    submitButton.element.focus();
+    (submitButton.element as HTMLButtonElement).focus();
     submitButton.element.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true }));
     expect(document.activeElement).toBe(firstFocusable);
 

@@ -378,7 +378,7 @@ function handleKeydown(event: KeyboardEvent) {
 
     if (event.shiftKey && activeIndex === 0) {
       event.preventDefault();
-      focusable.at(-1)?.focus();
+      focusable[focusable.length - 1]?.focus();
     } else if (!event.shiftKey && activeIndex === focusable.length - 1) {
       event.preventDefault();
       focusable[0]?.focus();
