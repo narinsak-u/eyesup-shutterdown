@@ -31,6 +31,8 @@ jobs:
         env:
           VITE_CONTENTFUL_SPACE: ${{ secrets.VITE_CONTENTFUL_SPACE }}
           VITE_CONTENTFUL_ACCESS_TOKEN: ${{ secrets.VITE_CONTENTFUL_ACCESS_TOKEN }}
+          VITE_INTERACTION_ACCESS_TOKEN: ${{ secrets.VITE_INTERACTION_ACCESS_TOKEN }}
+          VITE_IP_DISCOVERY_URL: ${{ secrets.VITE_IP_DISCOVERY_URL }}
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
