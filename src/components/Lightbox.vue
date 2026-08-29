@@ -12,6 +12,8 @@ import type { AnonymousIdentity } from "@/services/anonymousIdentity";
 import type { InteractionComment, InteractionSummary } from "@/types/interactions";
 import type { Photo } from "@/types/gallery";
 
+import { formatRelativeTime } from "@/utils/relativeTime";
+
 defineOptions({ name: "GalleryLightbox" });
 
 /** Fullscreen image viewer with previous/next navigation and an interaction panel. */
@@ -533,8 +535,8 @@ onUnmounted(() => {
                     <p class="text-body-sm text-secondary">
                       <span class="font-semibold text-primary">{{ comment.status === "pending" ? "You" : "Visitor" }}</span>
                       <span aria-hidden="true"> · </span>
-                      <span v-if='comment.status === "pending"'>Posting…</span>
-                      <time v-else>{{ comment.createdAt }}</time>
+                      <span v-if="comment.status === 'pending'">Posting…</span>
+                      <time v-else :datetime="comment.createdAt">{{ formatRelativeTime(comment.createdAt) }}</time>
                     </p>
                     <p class="break-words text-body-md text-primary">{{ comment.text }}</p>
                   </div>
